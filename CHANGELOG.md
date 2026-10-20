@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - Interface in English and German, following Obsidian's language. Property names stay the same.
 - No default folder any more: choose the folder that holds your subjects in the settings (with folder suggestions). Grade folders and subject overrides are empty by default.
