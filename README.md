@@ -30,7 +30,7 @@ It is the sibling of [Schul-Tagesnotes](https://github.com/schildi208-lgtm/obsid
   | `tags` | inline tags from the text plus your own |
   | `erstellt` / `geaendert` | created / last edited (`YYYY-MM-DDTHH:mm`) |
 
-- **Automatic sync while you write.** When you edit a note, new inline `#tags` are added to `tags` and `geaendert` is set to now (at most once a minute). Moving a note to another folder updates `fach`, `thema` and `unterthema`. Notes you don't touch are never changed, and the plugin never edits the text of a note.
+- **Automatic sync while you write.** When you edit a note, finished inline `#tags` are added to `tags` (not while you are still typing one), tags you delete from the text disappear from `tags` again, and `geaendert` is set to now (at most once a minute). Moving a note to another folder updates `fach`, `thema` and `unterthema`. Notes you don't touch are never changed, and the plugin never edits the text of a note.
 - **Hub overview.** One base (`01-Schule/Themen.base`) serves all subject hubs: embedded in a hub it shows all notes in that hub's folder. Views:
   - *Nach Thema* (grouped by topic), *Zuletzt bearbeitet* (last edited), *Neueste* (newest), *Alphabetisch*, *Nach Stufe* (by grade), *Abi-relevant* (tag `Abi_Relevant`), *Ohne Properties* (notes still without properties).
 - **Existing notes.** A command adds the properties to all existing notes after a confirmation. Only the frontmatter changes, and the file's modification date is restored.

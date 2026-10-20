@@ -9,12 +9,16 @@ export interface NoteDaten {
   ctime: number;
   mtime: number;
   textDatum: number | null;
+  /** Bisher vom Plugin übernommene Tags. */
+  verwaltet?: string[];
 }
 
 export interface NachruestEintrag {
   path: string;
   fach: string;
   plan: Record<string, unknown>;
+  /** Vom Plugin übernommene Tags nach dem Nachrüsten. */
+  verwaltet: string[];
 }
 
 export interface NachruestPlan {
@@ -38,8 +42,8 @@ export function planNachruesten(notes: NoteDaten[], s: Struktur, jetzt = Date.no
       out.fremd.push(n.path);
       continue;
     }
-    const plan = propPlan({ fm: n.fm, einordnung: e, inline: n.inline, vorherInline: null, bearbeitet: false, jetzt, ctime: n.ctime, mtime: n.mtime, textDatum: n.textDatum, tagsEntfernen: false });
-    if (Object.keys(plan).length) out.eintraege.push({ path: n.path, fach: e.fach.name, plan });
+    const { plan, verwaltet } = propPlan({ fm: n.fm, einordnung: e, fertig: n.inline, alle: n.inline, verwaltet: n.verwaltet ?? [], bearbeitet: false, jetzt, ctime: n.ctime, mtime: n.mtime, textDatum: n.textDatum, tagsEntfernen: false });
+    if (Object.keys(plan).length) out.eintraege.push({ path: n.path, fach: e.fach.name, plan, verwaltet });
     else out.vollstaendig++;
   }
   return out;

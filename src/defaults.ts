@@ -22,6 +22,8 @@ export interface ThemenSettings {
   /** Inline-Tags, die aus dem Text gelöscht werden, auch aus "tags" entfernen. */
   tagsEntfernen: boolean;
   anzeige: AnzeigeSettings;
+  /** Je Note: Tags, die das Plugin aus dem Text übernommen hat (nur diese werden wieder entfernt). */
+  tagStand: Record<string, string[]>;
 }
 
 export const DEFAULT_SETTINGS: ThemenSettings = {
@@ -36,8 +38,9 @@ export const DEFAULT_SETTINGS: ThemenSettings = {
   standardAnsicht: ANSICHTEN[0],
   vorlage: "",
   automatik: true,
-  tagsEntfernen: false,
+  tagsEntfernen: true,
   anzeige: DEFAULT_ANZEIGE,
+  tagStand: {},
 };
 
 /** Gespeicherte Daten über die Standardwerte legen (unbekannte Felder fallen weg). */
@@ -54,6 +57,7 @@ export function mergeSettings(data: unknown): ThemenSettings {
   for (const k of ["stufenMuster", "basePath", "standardAnsicht", "vorlage"] as const) if (typeof d[k] === "string") s[k] = d[k];
   for (const k of ["automatik", "tagsEntfernen"] as const) if (typeof d[k] === "boolean") s[k] = d[k];
   if (d.anzeige && typeof d.anzeige === "object") s.anzeige = { ...s.anzeige, ...d.anzeige };
+  if (d.tagStand && typeof d.tagStand === "object") s.tagStand = d.tagStand;
   return s;
 }
 

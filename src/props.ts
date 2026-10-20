@@ -6,10 +6,12 @@ import { parseStempel, stempel } from "./zeit.ts";
 export interface PropEingabe {
   fm: Record<string, unknown> | undefined;
   einordnung: Einordnung;
-  /** Aktuelle Inline-Tags im Text. */
-  inline: string[];
-  /** Inline-Tags beim letzten Abgleich (null = unbekannt). */
-  vorherInline: string[] | null;
+  /** Fertig getippte Inline-Tags (werden übernommen). */
+  fertig: string[];
+  /** Alle Inline-Tags im Text, auch halb getippte (entscheiden übers Entfernen). */
+  alle: string[];
+  /** Tags, die das Plugin früher aus dem Text übernommen hat. */
+  verwaltet: string[];
   /** Der Nutzer hat die Note gerade bearbeitet (setzt "geaendert" auf jetzt). */
   bearbeitet: boolean;
   jetzt: number;
@@ -20,8 +22,14 @@ export interface PropEingabe {
   tagsEntfernen: boolean;
 }
 
-/** Änderungen am Frontmatter: Schlüssel → Wert (null = löschen); leer = nichts zu tun. */
-export function propPlan(e: PropEingabe): Record<string, unknown> {
+export interface PropErgebnis {
+  /** Änderungen am Frontmatter: Schlüssel → Wert (null = löschen); leer = nichts zu tun. */
+  plan: Record<string, unknown>;
+  /** Neuer Stand der vom Plugin übernommenen Tags. */
+  verwaltet: string[];
+}
+
+export function propPlan(e: PropEingabe): PropErgebnis {
   const plan: Record<string, unknown> = abweichungen(e.fm, pfadProps(e.einordnung));
   if (parseStempel(e.fm?.erstellt) === null) {
     const kandidaten = [e.ctime, e.mtime, e.textDatum ?? Infinity].filter((x) => x > 0);
@@ -29,9 +37,9 @@ export function propPlan(e: PropEingabe): Record<string, unknown> {
   }
   const geaendert = e.bearbeitet ? stempel(e.jetzt) : parseStempel(e.fm?.geaendert) === null ? stempel(e.mtime) : null;
   if (geaendert && geaendert !== e.fm?.geaendert) plan.geaendert = geaendert;
-  const tags = syncTags(e.fm?.tags, e.inline, e.vorherInline, e.tagsEntfernen);
-  if (tags) plan.tags = tags;
-  return plan;
+  const t = syncTags(e.fm?.tags, e.fertig, e.alle, e.verwaltet, e.tagsEntfernen);
+  if (t.tags) plan.tags = t.tags;
+  return { plan, verwaltet: t.verwaltet };
 }
 
 /** Plan aufs Frontmatter anwenden (in processFrontMatter); Reihenfolge der Schlüssel wie in einer neuen Note. */

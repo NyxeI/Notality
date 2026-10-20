@@ -22,7 +22,7 @@ export class ThemenSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("Allgemein").setHeading();
     new Setting(containerEl)
       .setName("Properties automatisch abgleichen")
-      .setDesc("Beim Bearbeiten einer Note: fach/thema aus dem Ordner, neue #tags nach „tags“, „geaendert“ auf jetzt. Notes, die du nicht anfasst, bleiben unverändert.")
+      .setDesc("Beim Bearbeiten einer Note: fach/thema aus dem Ordner, fertig getippte #tags nach „tags“ (erst wenn der Cursor nicht mehr direkt dahinter steht), „geaendert“ auf jetzt. Notes, die du nicht anfasst, bleiben unverändert.")
       .addToggle((t) =>
         t.setValue(s.automatik).onChange(async (v) => {
           s.automatik = v;
@@ -31,7 +31,7 @@ export class ThemenSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName("Gelöschte #tags auch aus „tags“ entfernen")
-      .setDesc("Aus: Tags bleiben in den Properties, auch wenn du sie im Text löschst. Von Hand in den Properties eingetragene Tags bleiben immer.")
+      .setDesc("Tags, die das Plugin aus dem Text übernommen hat, verschwinden wieder aus den Properties, wenn sie nicht mehr im Text stehen. Von Hand in den Properties eingetragene Tags bleiben immer.")
       .addToggle((t) =>
         t.setValue(s.tagsEntfernen).onChange(async (v) => {
           s.tagsEntfernen = v;

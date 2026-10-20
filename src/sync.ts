@@ -1,7 +1,7 @@
-import { Notice, TFile } from "obsidian";
+import { MarkdownView, Notice, TFile } from "obsidian";
 import type ThemenNotesPlugin from "./main";
 import { fremdeNote, propPlan, textDatum, wendeAn } from "./props.ts";
-import { inlineTags } from "./tags.ts";
+import { fertigeTags, inlineTags } from "./tags.ts";
 
 /** Nur Änderungen, deren Datei so frisch ist, gelten als Bearbeitung (Neu-Indexieren beim Start fasst nichts an). */
 const FRISCH_MS = 15_000;
@@ -19,7 +19,7 @@ type Grund = "bearbeitet" | "verschoben";
 
 /**
  * Hält Properties und Tags von Themennotes aktuell: nach einer Bearbeitung (entprellt) fach/thema aus dem Ordner,
- * neue Inline-Tags nach "tags", "geaendert" auf jetzt; nach dem Verschieben nur die Pfad-Properties.
+ * fertig getippte Inline-Tags nach "tags" (gelöschte wieder heraus), "geaendert" auf jetzt; nach dem Verschieben nur die Pfad-Properties.
  * Schutz gegen Schleifen: eigene Schreibvorgänge merken sich den neuen Inhalt, eine Änderung nur an "geaendert" zählt nicht.
  */
 export class Sync {
@@ -27,7 +27,6 @@ export class Sync {
   private timers = new Map<string, number>();
   private gruende = new Map<string, Set<Grund>>();
   private schluessel = new Map<string, string>();
-  private inline = new Map<string, string[]>();
   private busy = new Set<string>();
   /** Während Massenänderungen (Nachrüsten) keine Automatik. */
   paused = false;
@@ -41,12 +40,12 @@ export class Sync {
   }
 
   verschoben(file: TFile, alt: string): void {
-    for (const m of [this.schluessel, this.inline] as Map<string, unknown>[]) {
-      if (m.has(alt)) {
-        m.set(file.path, m.get(alt));
-        m.delete(alt);
-      }
+    const k = this.schluessel.get(alt);
+    if (k !== undefined) {
+      this.schluessel.set(file.path, k);
+      this.schluessel.delete(alt);
     }
+    this.plugin.tagStandVerschieben(alt, file.path);
     this.planen(file, "verschoben");
   }
 
@@ -78,7 +77,22 @@ export class Sync {
   /** Aktuellen Inhalt als „eigenen Stand“ merken (nach dem Anlegen oder Nachrüsten). */
   async merke(file: TFile): Promise<void> {
     this.schluessel.set(file.path, inhaltsSchluessel(await this.plugin.app.vault.read(file)));
-    this.inline.set(file.path, inlineTags(this.plugin.app.metadataCache.getFileCache(file)?.tags));
+  }
+
+  /**
+   * Cursor-Offsets in offenen Editoren dieser Note; null = ein Editor hat ungespeicherte Änderungen
+   * (die Positionen im Metadaten-Cache passen dann nicht zum Editor).
+   */
+  private cursor(file: TFile, text: string): number[] | null {
+    const out: number[] = [];
+    for (const leaf of this.plugin.app.workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || view.file?.path !== file.path) continue;
+      const ed = view.editor;
+      if (ed.getValue() !== text) return null;
+      for (const sel of ed.listSelections()) out.push(ed.posToOffset(sel.head));
+    }
+    return out;
   }
 
   /** Gibt die geschriebenen Schlüssel zurück (leer = nichts zu tun). */
@@ -100,20 +114,22 @@ export class Sync {
     const verwaltet = fm?.typ === "themennote";
     if (!bearbeitet && !(gruende.has("verschoben") && verwaltet)) return [];
 
-    const inline = inlineTags(cache?.tags);
-    const plan = propPlan({
+    // Halb getippte Tags („#Duch|“) zählen noch nicht; bei ungespeicherten Editor-Änderungen bleiben die Tags diesmal, wie sie sind.
+    const cursor = this.cursor(file, text);
+    const { plan, verwaltet: stand } = propPlan({
       fm,
       einordnung: e,
-      inline,
-      vorherInline: this.inline.get(file.path) ?? null,
+      fertig: cursor ? fertigeTags(cache?.tags, cursor) : [],
+      alle: inlineTags(cache?.tags),
+      verwaltet: this.plugin.tagStand(file.path),
       bearbeitet,
       jetzt: Date.now(),
       ctime: file.stat.ctime,
       mtime: file.stat.mtime,
       textDatum: textDatum(text),
-      tagsEntfernen: this.plugin.settings.tagsEntfernen,
+      tagsEntfernen: this.plugin.settings.tagsEntfernen && cursor !== null,
     });
-    this.inline.set(file.path, inline);
+    this.plugin.setzeTagStand(file.path, stand);
     const keys = Object.keys(plan);
     if (!keys.length) return [];
     this.busy.add(file.path);

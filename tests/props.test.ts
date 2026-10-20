@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { inlineTags, syncTags, tagList } from "../src/tags.ts";
+import { fertigeTags, inlineTags, syncTags, tagList } from "../src/tags.ts";
 import { propPlan, textDatum, wendeAn } from "../src/props.ts";
 import { einordnen, faecherIn, type Struktur } from "../src/pfad.ts";
 import { DEFAULT_SETTINGS, mergeSettings } from "../src/defaults.ts";
@@ -22,33 +22,62 @@ test("tagList/inlineTags: ohne #, ohne Duplikate (Groß-/Kleinschreibung egal)",
   assert.deepEqual(inlineTags([{ tag: "#Physik" }, { tag: "#physik" }, { tag: "#Abi_Relevant" }]), ["Physik", "Abi_Relevant"]);
 });
 
-test("syncTags: neue Tags anhängen, nichts doppelt, Entfernen nur mit Schalter", () => {
-  assert.deepEqual(syncTags(["schule"], ["Schule", "optik"], null, false), ["schule", "optik"]);
-  assert.equal(syncTags(["schule", "optik"], ["optik"], null, false), null);
-  assert.equal(syncTags(["schule", "optik"], ["schule"], ["schule", "optik"], false), null);
-  assert.deepEqual(syncTags(["handtag", "schule", "optik"], ["schule"], ["schule", "optik"], true), ["handtag", "schule"]);
-  assert.equal(syncTags(undefined, [], null, true), null);
+test("fertigeTags: Tag direkt vor dem Cursor zählt noch nicht", () => {
+  const text = "Kunst #Duch";
+  const tags = [{ tag: "#Duch", position: { end: { offset: 11 } } }];
+  assert.deepEqual(fertigeTags(tags, [11]), []);
+  assert.deepEqual(fertigeTags(tags, []), ["Duch"]);
+  const fertig = "Kunst #Duchamp ";
+  assert.deepEqual(fertigeTags([{ tag: "#Duchamp", position: { end: { offset: 14 } } }], [fertig.length]), ["Duchamp"]);
+});
+
+test("syncTags: übernehmen, nichts doppelt, Gelöschtes wieder entfernen", () => {
+  // neu getippt → übernommen und als verwaltet gemerkt
+  assert.deepEqual(syncTags(["schule"], ["Schule", "optik"], ["Schule", "optik"], [], true), { tags: ["schule", "optik"], verwaltet: ["optik"] });
+  // nichts Neues
+  assert.deepEqual(syncTags(["schule", "optik"], ["optik"], ["optik"], ["optik"], true), { tags: null, verwaltet: ["optik"] });
+  // aus dem Text gelöscht → raus; von Hand eingetragenes "handtag" bleibt
+  assert.deepEqual(syncTags(["handtag", "optik"], [], [], ["optik"], true), { tags: ["handtag"], verwaltet: [] });
+  // ohne Schalter bleibt alles
+  assert.deepEqual(syncTags(["handtag", "optik"], [], [], ["optik"], false), { tags: null, verwaltet: ["optik"] });
+  // halb getippt (in "alle", nicht in "fertig") → wird weder übernommen noch entfernt
+  assert.deepEqual(syncTags(["optik"], [], ["optik"], ["optik"], true), { tags: null, verwaltet: ["optik"] });
+  // von Hand aus den Properties gelöscht → nicht mehr verwaltet
+  assert.deepEqual(syncTags([], [], [], ["optik"], true), { tags: null, verwaltet: [] });
+});
+
+test("Ablauf #Duch … #Duchamp: nur der fertige Tag landet in tags, ein alter Rest verschwindet", () => {
+  // Pause bei "#Duch|": nichts übernommen
+  let r = syncTags([], fertigeTags([{ tag: "#Duch", position: { end: { offset: 5 } } }], [5]), ["Duch"], [], true);
+  assert.deepEqual(r, { tags: null, verwaltet: [] });
+  // weitergetippt "#Duchamp " → übernommen
+  r = syncTags([], fertigeTags([{ tag: "#Duchamp", position: { end: { offset: 8 } } }], [9]), ["Duchamp"], r.verwaltet, true);
+  assert.deepEqual(r, { tags: ["Duchamp"], verwaltet: ["Duchamp"] });
+  // ein früher übernommener Rest "Duch" fliegt raus, sobald er nicht mehr im Text steht
+  r = syncTags(["Duch", "Duchamp"], ["Duchamp"], ["Duchamp"], ["Duch", "Duchamp"], true);
+  assert.deepEqual(r, { tags: ["Duchamp"], verwaltet: ["Duchamp"] });
 });
 
 test("propPlan: neue Note bekommt alles; danach stabil", () => {
-  const plan = propPlan({ fm: undefined, einordnung: e, inline: ["optik"], vorherInline: null, bearbeitet: true, jetzt: t0, ctime: t0, mtime: t0, tagsEntfernen: false });
+  const { plan, verwaltet } = propPlan({ fm: undefined, einordnung: e, fertig: ["optik"], alle: ["optik"], verwaltet: [], bearbeitet: true, jetzt: t0, ctime: t0, mtime: t0, tagsEntfernen: false });
   assert.deepEqual(plan, { typ: "themennote", fach: "[[Physik]]", thema: "A Auge", erstellt: "2026-10-20T14:05", geaendert: "2026-10-20T14:05", tags: ["optik"] });
+  assert.deepEqual(verwaltet, ["optik"]);
   const fm: Record<string, unknown> = {};
   wendeAn(fm, plan);
   // Gleiche Minute, gleiche Tags → nichts mehr zu tun (keine Schreibschleife)
-  assert.deepEqual(propPlan({ fm, einordnung: e, inline: ["optik"], vorherInline: ["optik"], bearbeitet: true, jetzt: t0 + 30_000, ctime: t0, mtime: t0, tagsEntfernen: false }), {});
+  assert.deepEqual(propPlan({ fm, einordnung: e, fertig: ["optik"], alle: ["optik"], verwaltet: ["optik"], bearbeitet: true, jetzt: t0 + 30_000, ctime: t0, mtime: t0, tagsEntfernen: false }).plan, {});
   // Eine Minute später bearbeitet → nur geaendert
-  assert.deepEqual(propPlan({ fm, einordnung: e, inline: ["optik"], vorherInline: ["optik"], bearbeitet: true, jetzt: t0 + 60_000, ctime: t0, mtime: t0, tagsEntfernen: false }), { geaendert: "2026-10-20T14:06" });
+  assert.deepEqual(propPlan({ fm, einordnung: e, fertig: ["optik"], alle: ["optik"], verwaltet: ["optik"], bearbeitet: true, jetzt: t0 + 60_000, ctime: t0, mtime: t0, tagsEntfernen: false }).plan, { geaendert: "2026-10-20T14:06" });
 });
 
 test("propPlan ohne Bearbeitung: Dateidaten, frühestes Datum für erstellt, vorhandene Werte bleiben", () => {
   const alt = new Date(2025, 0, 2, 8, 0).getTime();
-  const p = propPlan({ fm: { banner: "x.jpg" }, einordnung: e, inline: [], vorherInline: null, bearbeitet: false, jetzt: t0, ctime: t0, mtime: alt, textDatum: new Date(2024, 11, 1).getTime(), tagsEntfernen: false });
+  const p = propPlan({ fm: { banner: "x.jpg" }, einordnung: e, fertig: [], alle: [], verwaltet: [], bearbeitet: false, jetzt: t0, ctime: t0, mtime: alt, textDatum: new Date(2024, 11, 1).getTime(), tagsEntfernen: false }).plan;
   assert.equal(p.erstellt, "2024-12-01T00:00");
   assert.equal(p.geaendert, "2025-01-02T08:00");
   assert.equal("banner" in p, false);
   assert.equal("tags" in p, false);
-  const q = propPlan({ fm: { erstellt: "2023-01-01", geaendert: "2023-01-02T10:00" }, einordnung: e, inline: [], vorherInline: null, bearbeitet: false, jetzt: t0, ctime: t0, mtime: t0, tagsEntfernen: false });
+  const q = propPlan({ fm: { erstellt: "2023-01-01", geaendert: "2023-01-02T10:00" }, einordnung: e, fertig: [], alle: [], verwaltet: [], bearbeitet: false, jetzt: t0, ctime: t0, mtime: t0, tagsEntfernen: false }).plan;
   assert.equal("erstellt" in q || "geaendert" in q, false);
 });
 

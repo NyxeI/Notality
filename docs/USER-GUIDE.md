@@ -21,7 +21,7 @@
 | `typ` | always | `themennote` |
 | `fach` (or the area's property) | always | `"[[Hub]]"`, or the plain subject name when it has no hub |
 | `thema`, `unterthema`, `stufe` | always; removed when not applicable | from the folder path |
-| `tags` | inline tags appear | inline tags are appended; existing entries stay |
+| `tags` | inline tags appear or disappear | finished inline tags are appended; tags the plugin added are removed again when they leave the text |
 | `erstellt` | missing | earliest of file creation date, modification date and a date line (`DD-MM-YYYY` / `DD.MM.YYYY`) in the first lines of the note |
 | `geaendert` | the note is edited | now, minute precision |
 
@@ -34,7 +34,8 @@ The sync runs about a second after Obsidian has re-read a changed note.
 - It only counts as an **edit** if the file was modified in the last 15 seconds and its content (ignoring the `geaendert` line) differs from what the plugin saw last. Re-indexing on startup or sync tools touching old files therefore change nothing.
 - After an edit, the note gets all properties from the table above. A note that had no properties gets them on its first edit.
 - After **moving or renaming**, notes with `typ: themennote` get updated folder properties (`geaendert` stays).
-- *Gelöschte #tags auch aus „tags“ entfernen* (off by default): tags that disappear from the text are removed from `tags` as well, but only tags that the plugin saw in the text during this session. Tags you typed into the property yourself are never removed.
+- **Finished tags only:** a tag with the cursor directly behind it (`#Duch|`) is still being typed and is not added. It counts once something follows (space, punctuation, Enter) or the cursor is elsewhere. While an editor holds unsaved changes, tags are left alone for that round.
+- **Removing tags** (*Gelöschte #tags auch aus „tags“ entfernen*, on by default): the plugin remembers per note which tags it took from the text (`tagStand` in the plugin data). When such a tag no longer appears in the text, it is removed from `tags`. Tags you typed into the property yourself are never removed; deleting a tag from the property makes the plugin forget it.
 - Switch the sync off with *Properties automatisch abgleichen*.
 
 ## New notes

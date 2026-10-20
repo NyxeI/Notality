@@ -83,7 +83,12 @@ export default class ThemenNotesPlugin extends Plugin {
     this.addCommand({ id: "hubs-einrichten", name: "Fach-Hubs einrichten (Base-Übersicht einbetten) …", callback: () => void this.hubsDialog() });
 
     this.registerEvent(this.app.vault.on("create", () => (this.strukturCache = null)));
-    this.registerEvent(this.app.vault.on("delete", () => (this.strukturCache = null)));
+    this.registerEvent(
+      this.app.vault.on("delete", (f) => {
+        this.strukturCache = null;
+        if (f instanceof TFile) this.setzeTagStand(f.path, []);
+      }),
+    );
     this.app.workspace.onLayoutReady(() => {
       this.registerEvent(
         this.app.vault.on("rename", (f, alt) => {
@@ -118,6 +123,39 @@ export default class ThemenNotesPlugin extends Plugin {
   async saveSettings(): Promise<void> {
     this.strukturCache = null;
     await this.saveData(this.settings);
+  }
+
+  // ---------- Vom Plugin übernommene Tags (nur diese werden wieder entfernt) ----------
+
+  private tagStandTimer: number | null = null;
+
+  tagStand(path: string): string[] {
+    return this.settings.tagStand[path] ?? [];
+  }
+
+  setzeTagStand(path: string, tags: string[]): void {
+    const alt = this.settings.tagStand[path] ?? [];
+    if (alt.length === tags.length && alt.every((t, i) => t === tags[i])) return;
+    if (tags.length) this.settings.tagStand[path] = tags;
+    else delete this.settings.tagStand[path];
+    this.tagStandSpeichern();
+  }
+
+  tagStandVerschieben(alt: string, neu: string): void {
+    const t = this.settings.tagStand[alt];
+    if (!t) return;
+    delete this.settings.tagStand[alt];
+    this.settings.tagStand[neu] = t;
+    this.tagStandSpeichern();
+  }
+
+  /** Gebündelt speichern – beim Tippen ändert sich der Stand oft. */
+  private tagStandSpeichern(): void {
+    if (this.tagStandTimer !== null) window.clearTimeout(this.tagStandTimer);
+    this.tagStandTimer = window.setTimeout(() => {
+      this.tagStandTimer = null;
+      void this.saveData(this.settings);
+    }, 2000);
   }
 
   private anzeigeTimer: number | null = null;
@@ -310,7 +348,7 @@ export default class ThemenNotesPlugin extends Plugin {
     const neu = await this.app.vault.create(path, inhalt);
     if (e) {
       const jetzt = Date.now();
-      const plan = propPlan({ fm: undefined, einordnung: e, inline: [], vorherInline: null, bearbeitet: true, jetzt, ctime: jetzt, mtime: jetzt, tagsEntfernen: false });
+      const { plan } = propPlan({ fm: undefined, einordnung: e, fertig: [], alle: [], verwaltet: [], bearbeitet: true, jetzt, ctime: jetzt, mtime: jetzt, tagsEntfernen: false });
       const banner = this.settings.anzeige.bannerErben ? this.erbBanner(neu) : null;
       await this.app.fileManager.processFrontMatter(neu, (fm) => {
         // Plugin-Properties zuerst, danach die übrigen aus der Vorlage; Tags der Vorlage bleiben erhalten.
@@ -381,18 +419,21 @@ export default class ThemenNotesPlugin extends Plugin {
     if (!e) return;
     const cache = this.app.metadataCache.getFileCache(file);
     const text = await this.app.vault.read(file);
-    const plan = propPlan({
+    const inline = inlineTags(cache?.tags);
+    const { plan, verwaltet } = propPlan({
       fm: cache?.frontmatter,
       einordnung: e,
-      inline: inlineTags(cache?.tags),
-      vorherInline: null,
+      fertig: inline,
+      alle: inline,
+      verwaltet: this.tagStand(file.path),
       bearbeitet: false,
       jetzt: Date.now(),
       ctime: file.stat.ctime,
       mtime: file.stat.mtime,
       textDatum: textDatum(text),
-      tagsEntfernen: false,
+      tagsEntfernen: this.settings.tagsEntfernen,
     });
+    this.setzeTagStand(file.path, verwaltet);
     if (!Object.keys(plan).length) return void new Notice("Properties sind aktuell.");
     await this.app.fileManager.processFrontMatter(file, (fm) => wendeAn(fm, plan));
     await this.sync.merke(file);
@@ -412,6 +453,7 @@ export default class ThemenNotesPlugin extends Plugin {
         ctime: f.stat.ctime,
         mtime: f.stat.mtime,
         textDatum: textDatum(await this.app.vault.cachedRead(f)),
+        verwaltet: this.tagStand(f.path),
       });
     }
     return planNachruesten(daten, this.struktur());
@@ -458,6 +500,7 @@ export default class ThemenNotesPlugin extends Plugin {
             await fs.promises.utimes(adapter.getFullPath(f.path), t, t);
           }
           await this.sync.merke(f);
+          this.setzeTagStand(f.path, eintrag.verwaltet);
           ok++;
         } catch (e) {
           fehler.push(`${eintrag.path}: ${(e as Error).message}`);
