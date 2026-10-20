@@ -1,7 +1,7 @@
 {
 	"id": "notality",
 	"name": "Notality",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"minAppVersion": "1.9.0",
 	"description": "Topic notes per subject: a quick dialog files new notes into subject/topic folders, keeps properties and tags in sync, and adds Bases overviews to subject hubs.",
 	"author": "Nyxel",
