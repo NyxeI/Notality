@@ -1,7 +1,7 @@
 // Einstellungen und ihre Standardwerte (pure).
 import { DEFAULT_ANZEIGE, type AnzeigeSettings } from "./ansicht.ts";
 import type { Bereich, FachOverride } from "./config.ts";
-import { ANSICHTEN } from "./templates.ts";
+import { ansichtKey, type AnsichtKey } from "./templates.ts";
 
 export interface ThemenSettings {
   bereiche: Bereich[];
@@ -11,10 +11,10 @@ export interface ThemenSettings {
   ignoriert: string[];
   /** Regex für Stufen-Ordner direkt unter dem Fach ("11", "12-1"); leer = keine. */
   stufenMuster: string;
-  /** Pfad der Base, die in allen Fach-Hubs eingebettet wird. */
+  /** Pfad der Base, die in allen Fach-Hubs eingebettet wird; leer = "Themen.base" im Ordner des ersten Bereichs. */
   basePath: string;
   /** Ansicht, die „Hubs einrichten“ einbettet. */
-  standardAnsicht: string;
+  standardAnsicht: AnsichtKey;
   /** Vorlage für neue Notes; leer oder fehlend = leere Note. */
   vorlage: string;
   /** Properties und Tags beim Bearbeiten automatisch abgleichen. */
@@ -27,15 +27,13 @@ export interface ThemenSettings {
 }
 
 export const DEFAULT_SETTINGS: ThemenSettings = {
-  bereiche: [
-    { id: "schule", name: "Schule", root: "01-Schule", property: "fach", aktiv: true },
-    { id: "projekte", name: "Projekte", root: "04-Projekte", property: "projekt", aktiv: false },
-  ],
-  overrides: [{ folder: "Politik und Gesellschaft", name: "Politik und Gesellschaft", hub: "PuG" }],
-  ignoriert: ["attachments", "AufgabenFiles", "Ink", "Excalidraw", "Drawing", "Writing"],
-  stufenMuster: "^(11|12|13)(-[12])?$",
-  basePath: "01-Schule/Themen.base",
-  standardAnsicht: ANSICHTEN[0],
+  // Kein Ordner vorgegeben: der Nutzer wählt ihn in den Einstellungen.
+  bereiche: [{ id: "schule", name: "", root: "", property: "fach", aktiv: true }],
+  overrides: [],
+  ignoriert: ["attachments", "Ink", "Excalidraw", "Drawing", "Writing"],
+  stufenMuster: "",
+  basePath: "",
+  standardAnsicht: "thema",
   vorlage: "",
   automatik: true,
   tagsEntfernen: true,
@@ -54,11 +52,20 @@ export function mergeSettings(data: unknown): ThemenSettings {
   }
   if (Array.isArray(d.overrides)) s.overrides = d.overrides;
   if (Array.isArray(d.ignoriert)) s.ignoriert = d.ignoriert;
-  for (const k of ["stufenMuster", "basePath", "standardAnsicht", "vorlage"] as const) if (typeof d[k] === "string") s[k] = d[k];
+  for (const k of ["stufenMuster", "basePath", "vorlage"] as const) if (typeof d[k] === "string") s[k] = d[k];
+  // Früher wurde der Ansichtsname gespeichert ("Nach Thema"), jetzt der Schlüssel
+  if (typeof d.standardAnsicht === "string") s.standardAnsicht = ansichtKey(d.standardAnsicht) ?? (d.standardAnsicht as AnsichtKey);
   for (const k of ["automatik", "tagsEntfernen"] as const) if (typeof d[k] === "boolean") s[k] = d[k];
   if (d.anzeige && typeof d.anzeige === "object") s.anzeige = { ...s.anzeige, ...d.anzeige };
   if (d.tagStand && typeof d.tagStand === "object") s.tagStand = d.tagStand;
   return s;
+}
+
+/** Pfad der Base: eingestellt oder "Themen.base" im Ordner des ersten aktiven Bereichs mit Ordner. */
+export function basisPfad(s: ThemenSettings): string {
+  if (s.basePath.trim()) return s.basePath.trim();
+  const root = s.bereiche.find((b) => b.aktiv && b.root.trim())?.root.trim();
+  return root ? `${root}/Themen.base` : "Themen.base";
 }
 
 /** Stufen-Regex aus den Einstellungen; ungültig oder leer = keine Stufen. */

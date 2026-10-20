@@ -1,8 +1,41 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { AbstractInputSuggest, App, PluginSettingTab, Setting, TFolder } from "obsidian";
 import { SCHALTER } from "./anzeige.ts";
 import { formatOverrides, parseOverrides, type Bereich } from "./config.ts";
+import { t } from "./i18n.ts";
 import type ThemenNotesPlugin from "./main";
-import { ANSICHTEN } from "./templates.ts";
+import { ANSICHTEN, ansichtName, type AnsichtKey } from "./templates.ts";
+
+/** Vorschläge für Ordnerfelder: alle Ordner im Vault, passend zur Eingabe. */
+class OrdnerSuggest extends AbstractInputSuggest<TFolder> {
+  private input: HTMLInputElement;
+  private onPick: (pfad: string) => void;
+
+  constructor(app: App, input: HTMLInputElement, onPick: (pfad: string) => void) {
+    super(app, input);
+    this.input = input;
+    this.onPick = onPick;
+  }
+
+  getSuggestions(query: string): TFolder[] {
+    const q = query.toLowerCase();
+    return this.app.vault
+      .getAllFolders()
+      .filter((f) => f.path.toLowerCase().includes(q))
+      .sort((a, b) => a.path.localeCompare(b.path))
+      .slice(0, 50);
+  }
+
+  renderSuggestion(folder: TFolder, el: HTMLElement): void {
+    el.setText(folder.path);
+  }
+
+  selectSuggestion(folder: TFolder): void {
+    this.input.value = folder.path;
+    this.input.dispatchEvent(new Event("input"));
+    this.onPick(folder.path);
+    this.close();
+  }
+}
 
 export class ThemenSettingTab extends PluginSettingTab {
   private plugin: ThemenNotesPlugin;
@@ -18,102 +51,110 @@ export class ThemenSettingTab extends PluginSettingTab {
     const save = () => this.plugin.saveSettings();
     containerEl.empty();
 
-    // ---------- Allgemein ----------
-    new Setting(containerEl).setName("Allgemein").setHeading();
-    new Setting(containerEl)
-      .setName("Properties automatisch abgleichen")
-      .setDesc("Beim Bearbeiten einer Note: fach/thema aus dem Ordner, fertig getippte #tags nach „tags“ (erst wenn der Cursor nicht mehr direkt dahinter steht), „geaendert“ auf jetzt. Notes, die du nicht anfasst, bleiben unverändert.")
-      .addToggle((t) =>
-        t.setValue(s.automatik).onChange(async (v) => {
-          s.automatik = v;
-          await save();
-        }),
-      );
-    new Setting(containerEl)
-      .setName("Gelöschte #tags auch aus „tags“ entfernen")
-      .setDesc("Tags, die das Plugin aus dem Text übernommen hat, verschwinden wieder aus den Properties, wenn sie nicht mehr im Text stehen. Von Hand in den Properties eingetragene Tags bleiben immer.")
-      .addToggle((t) =>
-        t.setValue(s.tagsEntfernen).onChange(async (v) => {
-          s.tagsEntfernen = v;
-          await save();
-        }),
-      );
-    this.text(containerEl, "Vorlage für neue Notes", "Pfad einer Note im Vault; leer = leere Note. Platzhalter: {{titel}}, {{fach}}, {{thema}}, {{date}}.", s.vorlage, (v) => (s.vorlage = v), save, true);
-    this.text(containerEl, "Base-Datei", "Eine Base für alle Fach-Hubs; sie zeigt jeweils die Notes im Ordner des Hubs.", s.basePath, (v) => (s.basePath = v), save);
-    new Setting(containerEl)
-      .setName("Ansicht beim Einrichten der Hubs")
-      .addDropdown((d) =>
-        d
-          .addOptions(Object.fromEntries(ANSICHTEN.map((a) => [a, a])))
-          .setValue(s.standardAnsicht)
-          .onChange(async (v) => {
-            s.standardAnsicht = v;
-            await save();
-          }),
-      );
-
-    // ---------- Bereiche ----------
-    new Setting(containerEl).setName("Bereiche und Fächer").setHeading();
+    // ---------- Bereiche (zuerst: ohne Ordner geht nichts) ----------
+    new Setting(containerEl).setName(t("e.bereiche")).setHeading();
     for (const b of s.bereiche) this.bereich(containerEl, b, save);
     new Setting(containerEl)
-      .setName("Abweichende Fächer")
-      .setDesc("Eine Zeile pro Fachordner: Ordner | Name | Hub (Hub = Note im Fachordner ohne .md). Sonst gilt: Name = Ordner, Hub = <Ordner>/<Ordner>.md.")
-      .addTextArea((t) => {
-        t.inputEl.rows = 4;
-        t.inputEl.cols = 45;
-        t.setValue(formatOverrides(s.overrides)).onChange(async (v) => {
+      .setName(t("e.overrides"))
+      .setDesc(t("e.overrides.desc"))
+      .addTextArea((ta) => {
+        ta.inputEl.rows = 4;
+        ta.inputEl.cols = 45;
+        ta.setValue(formatOverrides(s.overrides)).onChange(async (v) => {
           s.overrides = parseOverrides(v);
           await save();
         });
       });
     new Setting(containerEl)
-      .setName("Ignorierte Ordner")
-      .setDesc("Ordnernamen, die nie Fach oder Thema sind (Anhänge, Zeichnungen …). Einer pro Zeile.")
-      .addTextArea((t) => {
-        t.inputEl.rows = 4;
-        t.setValue(s.ignoriert.join("\n")).onChange(async (v) => {
+      .setName(t("e.ignoriert"))
+      .setDesc(t("e.ignoriert.desc"))
+      .addTextArea((ta) => {
+        ta.inputEl.rows = 4;
+        ta.setValue(s.ignoriert.join("\n")).onChange(async (v) => {
           s.ignoriert = v.split("\n").map((x) => x.trim()).filter(Boolean);
           await save();
         });
       });
-    this.text(containerEl, "Stufen-Ordner", "Regulärer Ausdruck für Ordner direkt unter dem Fach, die eine Stufe statt eines Themas sind (Property „stufe“). Leer = keine.", s.stufenMuster, (v) => (s.stufenMuster = v), save, true);
+    this.text(containerEl, t("e.stufen"), t("e.stufen.desc"), s.stufenMuster, (v) => (s.stufenMuster = v), save);
+
+    // ---------- Allgemein ----------
+    new Setting(containerEl).setName(t("e.allgemein")).setHeading();
+    new Setting(containerEl)
+      .setName(t("e.auto"))
+      .setDesc(t("e.auto.desc"))
+      .addToggle((tg) =>
+        tg.setValue(s.automatik).onChange(async (v) => {
+          s.automatik = v;
+          await save();
+        }),
+      );
+    new Setting(containerEl)
+      .setName(t("e.tagsWeg"))
+      .setDesc(t("e.tagsWeg.desc"))
+      .addToggle((tg) =>
+        tg.setValue(s.tagsEntfernen).onChange(async (v) => {
+          s.tagsEntfernen = v;
+          await save();
+        }),
+      );
+    this.text(containerEl, t("e.vorlage"), t("e.vorlage.desc"), s.vorlage, (v) => (s.vorlage = v), save);
+    this.text(containerEl, t("e.base"), t("e.base.desc"), s.basePath, (v) => (s.basePath = v), save);
+    new Setting(containerEl).setName(t("e.ansicht")).addDropdown((d) =>
+      d
+        .addOptions(Object.fromEntries(ANSICHTEN.map((k) => [k, ansichtName(k)])))
+        .setValue(s.standardAnsicht)
+        .onChange(async (v) => {
+          s.standardAnsicht = v as AnsichtKey;
+          await save();
+        }),
+    );
 
     // ---------- Anzeige ----------
-    new Setting(containerEl).setName("Anzeige").setHeading();
+    new Setting(containerEl).setName(t("e.anzeige")).setHeading();
     for (const sch of SCHALTER) {
       new Setting(containerEl)
-        .setName(sch.name)
-        .setDesc(sch.desc)
-        .addToggle((t) => t.setValue(s.anzeige[sch.key]).onChange(() => void this.plugin.anzeige.toggle(sch.key)));
+        .setName(t(sch.name))
+        .setDesc(t(sch.desc))
+        .addToggle((tg) => tg.setValue(s.anzeige[sch.key]).onChange(() => void this.plugin.anzeige.toggle(sch.key)));
     }
 
-    // ---------- Tastenkürzel ----------
-    new Setting(containerEl).setName("Tastenkürzel").setHeading();
-    new Setting(containerEl)
-      .setName("Vorschlag")
-      .setDesc("Strg+Alt+N: Neue Themennote · Strg+Alt+Shift+N: im Fach der aktuellen Note. Vergeben unter Einstellungen → Tastenkürzel, Suche „Notality“.");
+    // ---------- Tastenkürzel, Sprache ----------
+    new Setting(containerEl).setName(t("e.hotkeys")).setHeading();
+    new Setting(containerEl).setName(t("e.hotkeys.vorschlag")).setDesc(t("e.hotkeys.desc"));
+    new Setting(containerEl).setDesc(t("e.sprache"));
   }
 
   private bereich(el: HTMLElement, b: Bereich, save: () => Promise<void>): void {
+    const name = b.name || b.root || t("e.ordnerFehlt");
     new Setting(el)
-      .setName(`Bereich: ${b.name}`)
-      .setDesc(`Ordner „${b.root}“, darunter ein Ordner pro ${b.property === "fach" ? "Fach" : "Kategorie"}; Property „${b.property}“.`)
-      .addToggle((t) =>
-        t.setValue(b.aktiv).onChange(async (v) => {
+      .setName(t("e.bereich", { name }))
+      .setDesc(t("e.bereich.desc", { art: t(b.property === "fach" ? "e.bereich.fach" : "e.bereich.kategorie"), property: b.property }))
+      .addToggle((tg) =>
+        tg.setValue(b.aktiv).onChange(async (v) => {
           b.aktiv = v;
           await save();
         }),
       );
-    this.text(el, `${b.name}: Ordner`, "", b.root, (v) => (b.root = v), save);
+    new Setting(el)
+      .setName(t("e.ordner", { name }))
+      .setDesc(t("e.ordner.desc"))
+      .addText((tx) => {
+        tx.setPlaceholder(t("e.ordnerFehlt")).setValue(b.root);
+        const setze = async (v: string) => {
+          b.root = v.trim().replace(/\/+$/, "");
+          await save();
+        };
+        tx.onChange((v) => void setze(v));
+        new OrdnerSuggest(this.app, tx.inputEl, (pfad) => void setze(pfad));
+      });
   }
 
-  private text(el: HTMLElement, name: string, desc: string, value: string, set: (v: string) => void, save: () => Promise<void>, leerErlaubt = false): void {
+  private text(el: HTMLElement, name: string, desc: string, value: string, set: (v: string) => void, save: () => Promise<void>): void {
     new Setting(el)
       .setName(name)
       .setDesc(desc)
-      .addText((t) =>
-        t.setValue(value).onChange(async (v) => {
-          if (!v.trim() && !leerErlaubt) return;
+      .addText((tx) =>
+        tx.setValue(value).onChange(async (v) => {
           set(v.trim());
           await save();
         }),

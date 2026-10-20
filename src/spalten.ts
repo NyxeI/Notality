@@ -1,13 +1,14 @@
 // Spalten und Breiten der Fach-Base (pure): Tabellen sollen in die Notizbreite passen statt seitlich zu scrollen.
+import type { TextKey } from "./i18n.ts";
 
-/** Spalten, die im Panel ein-/ausgeschaltet werden können (Property-Name wie in `order`). */
-export const SPALTEN: { name: string; label: string; art: "text" | "liste" | "schmal" }[] = [
-  { name: "thema", label: "Thema", art: "text" },
-  { name: "unterthema", label: "Unterthema", art: "text" },
-  { name: "stufe", label: "Stufe", art: "schmal" },
-  { name: "file.tags", label: "Tags", art: "liste" },
-  { name: "erstellt", label: "Erstellt", art: "schmal" },
-  { name: "geaendert", label: "Geändert", art: "schmal" },
+/** Spalten, die im Panel ein-/ausgeschaltet werden können (Property-Name wie in `order`, Beschriftung als Text-Schlüssel). */
+export const SPALTEN: { name: string; label: TextKey; art: "text" | "liste" | "schmal" }[] = [
+  { name: "thema", label: "sp.thema", art: "text" },
+  { name: "unterthema", label: "sp.unterthema", art: "text" },
+  { name: "stufe", label: "sp.stufe", art: "schmal" },
+  { name: "file.tags", label: "sp.tags", art: "liste" },
+  { name: "erstellt", label: "sp.erstellt", art: "schmal" },
+  { name: "geaendert", label: "sp.geaendert", art: "schmal" },
 ];
 
 /** Breite der Note-Spalte. */

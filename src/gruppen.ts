@@ -1,5 +1,6 @@
 import { MarkdownView, Menu, Modal, Setting } from "obsidian";
 import { farbSchluessel, normalisiereFarbe, themaFarbe } from "./ansicht.ts";
+import { alleSprachen, t } from "./i18n.ts";
 import type ThemenNotesPlugin from "./main";
 
 /** Vorschläge im Farbdialog. */
@@ -59,7 +60,7 @@ export class Gruppen {
         for (const kopf of Array.from(embed.querySelectorAll<HTMLElement>(".bases-group-heading"))) {
           const eigenschaft = kopf.querySelector(".bases-group-property")?.textContent?.trim();
           const wert = kopf.querySelector(".bases-group-value")?.textContent?.trim();
-          if (!wert || !eigenschaft || !/^thema$/i.test(eigenschaft)) continue;
+          if (!wert || !eigenschaft || !alleSprachen("sp.thema").some((x) => x.toLowerCase() === eigenschaft.toLowerCase())) continue;
           const farbe = themaFarbe(a, kategorie, wert);
           const tabelle = kopf.parentElement;
           kopf.addClass("themen-gruppe");
@@ -84,9 +85,9 @@ export class Gruppen {
     const kategorie = kopf.dataset.themenFach;
     const thema = kopf.dataset.themenThema;
     const menu = new Menu();
-    menu.addItem((i) => i.setTitle(`Farbe für „${thema}“ …`).setIcon("palette").onClick(() => new FarbModal(this.plugin, kategorie, thema).open()));
+    menu.addItem((i) => i.setTitle(t("f.farbeFuerMenue", { thema })).setIcon("palette").onClick(() => new FarbModal(this.plugin, kategorie, thema).open()));
     if (this.plugin.settings.anzeige.themaFarben[farbSchluessel(kategorie, thema)]) {
-      menu.addItem((i) => i.setTitle("Farbe zurücksetzen").setIcon("rotate-ccw").onClick(() => void setzeThemaFarbe(this.plugin, kategorie, thema, null)));
+      menu.addItem((i) => i.setTitle(t("f.zuruecksetzen")).setIcon("rotate-ccw").onClick(() => void setzeThemaFarbe(this.plugin, kategorie, thema, null)));
     }
     menu.showAtMouseEvent(e);
   }
@@ -117,7 +118,7 @@ export class FarbModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("themen-farb-modal");
-    this.titleEl.setText(`Farbe für „${this.thema}“`);
+    this.titleEl.setText(t("f.farbeFuer", { thema: this.thema }));
     const aktuell = themaFarbe(this.p.settings.anzeige, this.kategorie, this.thema) ?? "#7c5cff";
     const leiste = this.contentEl.createDiv({ cls: "themen-farben" });
     for (const f of FARB_VORSCHLAEGE) {
@@ -127,9 +128,9 @@ export class FarbModal extends Modal {
       b.addEventListener("click", () => void this.waehle(f));
     }
     new Setting(this.contentEl)
-      .setName("Eigene Farbe")
+      .setName(t("f.eigene"))
       .addColorPicker((c) => c.setValue(aktuell).onChange((v) => void this.waehle(v, false)))
-      .addButton((b) => b.setButtonText("Zurücksetzen").onClick(() => void this.waehle(null)));
+      .addButton((b) => b.setButtonText(t("zuruecksetzen")).onClick(() => void this.waehle(null)));
   }
 
   private async waehle(farbe: string | null, schliessen = true): Promise<void> {

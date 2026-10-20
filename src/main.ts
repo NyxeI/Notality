@@ -1,8 +1,9 @@
-import { FileSystemAdapter, MarkdownView, Notice, Platform, Plugin, TFile, TFolder, normalizePath, parseYaml, stringifyYaml } from "obsidian";
+import { FileSystemAdapter, MarkdownView, Notice, Platform, Plugin, TFile, TFolder, getLanguage, normalizePath, parseYaml, stringifyYaml } from "obsidian";
 import { Anzeige, SCHALTER, type NoteArt } from "./anzeige.ts";
 import { baseUpdate } from "./bases.ts";
 import { dateiName, type Bereich, type Fach } from "./config.ts";
-import { DEFAULT_SETTINGS, mergeSettings, stufenRegex, type ThemenSettings } from "./defaults.ts";
+import { DEFAULT_SETTINGS, basisPfad, mergeSettings, stufenRegex, type ThemenSettings } from "./defaults.ts";
+import { alleSprachen, setzeSprache, t, type TextKey } from "./i18n.ts";
 import { Gruppen } from "./gruppen.ts";
 import { aktuelleAnsicht, planHub, setzeAnsicht } from "./hubs.ts";
 import { ConfirmModal, FachModal, ThemaModal, TitelModal, type FachWahl, type ThemaChoice } from "./modals.ts";
@@ -13,7 +14,7 @@ import { fremdeNote, propPlan, textDatum, wendeAn } from "./props.ts";
 import { ThemenSettingTab } from "./settings.ts";
 import { Sync } from "./sync.ts";
 import { inlineTags, tagList } from "./tags.ts";
-import { DEFAULT_VORLAGE, fachBase, renderVorlage } from "./templates.ts";
+import { DEFAULT_VORLAGE, ansichtKey, ansichtName, baseSprache, fachBase, renderVorlage, type AnsichtKey } from "./templates.ts";
 
 const yaml = { parse: parseYaml, stringify: stringifyYaml };
 
@@ -25,18 +26,19 @@ export default class ThemenNotesPlugin extends Plugin {
   private strukturCache: Struktur | null = null;
 
   async onload(): Promise<void> {
+    setzeSprache(getLanguage());
     await this.loadSettings();
     this.anzeige.apply();
     this.addSettingTab(new ThemenSettingTab(this.app, this));
     this.registerView(PANEL_VIEW, (leaf) => new ThemenPanel(leaf, this));
-    this.addRibbonIcon("file-plus-2", "Neue Themennote", () => this.waehleFach());
-    this.addRibbonIcon("sliders-horizontal", "Themen-Panel", () => void this.openPanel());
+    this.addRibbonIcon("file-plus-2", t("ribbon.neu"), () => this.waehleFach());
+    this.addRibbonIcon("sliders-horizontal", t("ribbon.panel"), () => void this.openPanel());
 
     // ---------- Neue Notes ----------
-    this.addCommand({ id: "neue-themennote", name: "Neue Themennote …", callback: () => this.waehleFach() });
+    this.addCommand({ id: "neue-themennote", name: t("cmd.neu"), callback: () => this.waehleFach() });
     this.addCommand({
       id: "themennote-aktuelles-fach",
-      name: "Neue Themennote im Fach der aktuellen Note …",
+      name: t("cmd.neuFach"),
       callback: () => {
         const file = this.app.workspace.getActiveFile();
         const e = file ? this.einordnung(file.path) : null;
@@ -46,7 +48,7 @@ export default class ThemenNotesPlugin extends Plugin {
     });
     this.addCommand({
       id: "themennote-aktuelles-thema",
-      name: "Neue Themennote im Thema der aktuellen Note …",
+      name: t("cmd.neuThema"),
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const e = file ? this.einordnung(file.path) : null;
@@ -57,15 +59,15 @@ export default class ThemenNotesPlugin extends Plugin {
     });
 
     // ---------- Anzeige ----------
-    this.addCommand({ id: "panel-oeffnen", name: "Themen-Panel öffnen", callback: () => void this.openPanel() });
+    this.addCommand({ id: "panel-oeffnen", name: t("cmd.panel"), callback: () => void this.openPanel() });
     for (const sch of SCHALTER) {
-      this.addCommand({ id: `anzeige-${sch.key}`, name: `Anzeige umschalten: ${sch.name}`, callback: () => void this.anzeige.toggle(sch.key) });
+      this.addCommand({ id: `anzeige-${sch.key}`, name: t("cmd.anzeige", { name: t(sch.name) }), callback: () => void this.anzeige.toggle(sch.key) });
     }
 
     // ---------- Properties, Base, Hubs ----------
     this.addCommand({
       id: "properties-aktuelle-note",
-      name: "Properties der aktuellen Note jetzt abgleichen",
+      name: t("cmd.abgleichen"),
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const e = file ? this.einordnung(file.path) : null;
@@ -76,11 +78,11 @@ export default class ThemenNotesPlugin extends Plugin {
     });
     this.addCommand({
       id: "properties-nachruesten",
-      name: "Properties für alle vorhandenen Notes nachrüsten …",
+      name: t("cmd.nachruesten"),
       callback: () => void this.nachruestenDialog(),
     });
-    this.addCommand({ id: "base-aktualisieren", name: "Base-Datei anlegen/aktualisieren", callback: () => void this.baseAktualisieren(true) });
-    this.addCommand({ id: "hubs-einrichten", name: "Fach-Hubs einrichten (Base-Übersicht einbetten) …", callback: () => void this.hubsDialog() });
+    this.addCommand({ id: "base-aktualisieren", name: t("cmd.base"), callback: () => void this.baseAktualisieren(true) });
+    this.addCommand({ id: "hubs-einrichten", name: t("cmd.hubs"), callback: () => void this.hubsDialog() });
 
     this.registerEvent(this.app.vault.on("create", () => (this.strukturCache = null)));
     this.registerEvent(
@@ -176,7 +178,8 @@ export default class ThemenNotesPlugin extends Plugin {
     const s = this.settings;
     const faecher = new Map<string, Fach[]>();
     for (const b of s.bereiche) {
-      const root = this.app.vault.getAbstractFileByPath(normalizePath(b.root));
+      // Ohne festgelegten Ordner keine Fächer (sonst wäre jeder Ordner im Vault ein Fach)
+      const root = b.root.trim() ? this.app.vault.getAbstractFileByPath(normalizePath(b.root)) : null;
       const unter = root instanceof TFolder ? root.children.filter((c): c is TFolder => c instanceof TFolder).map((c) => c.name) : [];
       faecher.set(b.id, faecherIn(b, unter, (p) => this.app.vault.getAbstractFileByPath(p) instanceof TFile, s.overrides, s.ignoriert));
     }
@@ -210,8 +213,13 @@ export default class ThemenNotesPlugin extends Plugin {
     return f instanceof TFile ? f : null;
   }
 
+  /** Pfad der Themen-Base (eingestellt oder neben den Fächern). */
+  basePfad(): string {
+    return normalizePath(basisPfad(this.settings));
+  }
+
   baseName(): string {
-    return this.settings.basePath.split("/").pop() ?? this.settings.basePath;
+    return this.basePfad().split("/").pop() ?? this.basePfad();
   }
 
   /** Ordner der Note relativ zum Fachordner ("" = direkt im Fach). */
@@ -289,7 +297,11 @@ export default class ThemenNotesPlugin extends Plugin {
 
   waehleFach(): void {
     const wahl = this.fachWahlen();
-    if (!wahl.length) return void new Notice("Notality: keine Fächer gefunden – Bereichsordner in den Einstellungen prüfen.");
+    if (!wahl.length) {
+      new Notice(t("n.keineFaecher"), 8000);
+      this.oeffneEinstellungen();
+      return;
+    }
     new FachModal(this.app, wahl, (w) => this.waehleThema(w.bereich, w.fach)).open();
   }
 
@@ -311,10 +323,10 @@ export default class ThemenNotesPlugin extends Plugin {
     const ordner = pfad ? `${this.fachOrdner(bereich, fach)}/${pfad}` : this.fachOrdner(bereich, fach);
     const f = this.app.vault.getAbstractFileByPath(ordner);
     const vorhanden = f instanceof TFolder ? f.children.filter((c): c is TFile => c instanceof TFile && this.art(c) === "note") : [];
-    const krumen = [fach.name, ...(pfad ? pfad.split("/") : ["Ohne Thema"])];
+    const krumen = [fach.name, ...(pfad ? pfad.split("/") : [t("m.ohneThema")])];
     new TitelModal(this.app, krumen, ordner.slice(bereich.root.length + 1), vorhanden, (choice) => {
       if (choice.kind === "open") void this.open(choice.file);
-      else void this.erstelleNote(ordner, choice.titel).catch((e) => new Notice(`Fehler: ${(e as Error).message}`));
+      else void this.erstelleNote(ordner, choice.titel).catch((e) => new Notice(t("fehler", { msg: (e as Error).message })));
     }).open();
   }
 
@@ -327,11 +339,11 @@ export default class ThemenNotesPlugin extends Plugin {
 
   async erstelleNote(ordner: string, titel: string): Promise<TFile> {
     const name = dateiName(titel);
-    if (!name) throw new Error("Bitte einen Titel eingeben.");
+    if (!name) throw new Error(t("n.titelFehlt"));
     const path = normalizePath(`${ordner}/${name}.md`);
     const vorhanden = this.app.vault.getAbstractFileByPath(path);
     if (vorhanden instanceof TFile) {
-      new Notice("Diese Note gibt es schon – geöffnet.");
+      new Notice(t("n.gibtEsSchon"));
       await this.open(vorhanden);
       return vorhanden;
     }
@@ -401,6 +413,13 @@ export default class ThemenNotesPlugin extends Plugin {
   }
 
   /** Steuer-Panel in der rechten Seitenleiste öffnen (oder zeigen). */
+  /** Einstellungen des Plugins öffnen (z. B. wenn noch kein Ordner festgelegt ist). */
+  oeffneEinstellungen(): void {
+    const setting = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
+    setting?.open();
+    setting?.openTabById(this.manifest.id);
+  }
+
   async openPanel(): Promise<void> {
     const ws = this.app.workspace;
     let leaf = ws.getLeavesOfType(PANEL_VIEW)[0];
@@ -434,10 +453,10 @@ export default class ThemenNotesPlugin extends Plugin {
       tagsEntfernen: this.settings.tagsEntfernen,
     });
     this.setzeTagStand(file.path, verwaltet);
-    if (!Object.keys(plan).length) return void new Notice("Properties sind aktuell.");
+    if (!Object.keys(plan).length) return void new Notice(t("n.aktuell"));
     await this.app.fileManager.processFrontMatter(file, (fm) => wendeAn(fm, plan));
     await this.sync.merke(file);
-    new Notice(`Aktualisiert: ${Object.keys(plan).join(", ")}`);
+    new Notice(t("n.aktualisiert", { keys: Object.keys(plan).join(", ") }));
   }
 
   /** Plan fürs Nachrüsten aller Notes in den aktiven Bereichen. */
@@ -465,15 +484,15 @@ export default class ThemenNotesPlugin extends Plugin {
 
   private async nachruestenDialog(): Promise<void> {
     const plan = await this.nachruestPlan();
-    if (!plan.eintraege.length) return void new Notice("Alle Notes haben ihre Properties schon.");
+    if (!plan.eintraege.length) return void new Notice(t("n.alleVollstaendig"));
     const proFach = new Map<string, number>();
     for (const e of plan.eintraege) proFach.set(e.fach, (proFach.get(e.fach) ?? 0) + 1);
     const liste = [...proFach].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(", ");
     new ConfirmModal(
       this.app,
-      "Properties nachrüsten",
-      `${plan.eintraege.length} Notes bekommen fach, thema, tags (aus den #tags im Text), erstellt und geaendert. Der Text der Notes bleibt unverändert; das Dateidatum wird wiederhergestellt.\n\n${liste}\n\nAusgelassen: ${plan.hubs.length} Hubs, ${plan.fremd.length} Kanban-/Excalidraw-Notes. Vorher ein Backup machen!`,
-      () => void this.nachruesten(plan).then((r) => new Notice(`Nachgerüstet: ${r.ok} Notes, ${r.fehler.length} Fehler.`, 10000)),
+      t("c.nachruesten.titel"),
+      t("c.nachruesten.text", { n: plan.eintraege.length, liste, hubs: plan.hubs.length, fremd: plan.fremd.length }),
+      () => void this.nachruesten(plan).then((r) => new Notice(t("n.nachgeruestet", { ok: r.ok, fehler: r.fehler.length }), 10000)),
     ).open();
   }
 
@@ -489,7 +508,7 @@ export default class ThemenNotesPlugin extends Plugin {
       for (const eintrag of plan.eintraege) {
         const f = this.app.vault.getAbstractFileByPath(eintrag.path);
         if (!(f instanceof TFile)) {
-          fehler.push(`${eintrag.path}: fehlt`);
+          fehler.push(`${eintrag.path}: ${t("n.fehlt")}`);
           continue;
         }
         try {
@@ -520,12 +539,13 @@ export default class ThemenNotesPlugin extends Plugin {
 
   /** Base-Datei anlegen oder auf Plugin-Stand bringen (Spalten aus dem Panel bleiben). */
   async baseAktualisieren(melden = false): Promise<boolean> {
-    const pfad = normalizePath(this.settings.basePath);
+    const pfad = this.basePfad();
     const f = this.app.vault.getAbstractFileByPath(pfad);
     const ist = f instanceof TFile ? await this.app.vault.read(f) : null;
-    const neu = baseUpdate(fachBase(), ist, this.settings.anzeige, yaml);
+    // Eine vorhandene Base behält ihre Sprache, sonst passten die Einbettungen (#Ansicht) in den Hubs nicht mehr
+    const neu = baseUpdate(fachBase(this.baseName(), (ist && baseSprache(ist)) || undefined), ist, this.settings.anzeige, yaml);
     if (neu === null) {
-      if (melden) new Notice(`${this.baseName()} ist aktuell.`);
+      if (melden) new Notice(t("n.baseAktuell", { name: this.baseName() }));
       return false;
     }
     if (f instanceof TFile) await this.app.vault.modify(f, neu);
@@ -534,7 +554,7 @@ export default class ThemenNotesPlugin extends Plugin {
       if (ordner) await ensureFolder(this, ordner);
       await this.app.vault.create(pfad, neu);
     }
-    if (melden) new Notice(`${this.baseName()} ${f ? "aktualisiert" : "angelegt"}.`);
+    if (melden) new Notice(t(f ? "n.baseAktualisiert" : "n.baseAngelegt", { name: this.baseName() }));
     return true;
   }
 
@@ -542,11 +562,12 @@ export default class ThemenNotesPlugin extends Plugin {
   async hubPlan(): Promise<Map<TFile, string>> {
     const out = new Map<TFile, string>();
     const s = this.struktur();
+    const ansicht = await this.ansichtInBase(this.settings.standardAnsicht);
     for (const bereich of s.bereiche.filter((b) => b.aktiv)) {
       for (const fach of s.faecher.get(bereich.id) ?? []) {
         const hub = this.hubDatei(bereich, fach);
         if (!hub) continue;
-        const neu = planHub(await this.app.vault.read(hub), this.baseName(), this.settings.standardAnsicht);
+        const neu = planHub(await this.app.vault.read(hub), this.baseName(), ansicht, t("hub.ueberschrift"));
         if (neu !== null) out.set(hub, neu);
       }
     }
@@ -557,14 +578,14 @@ export default class ThemenNotesPlugin extends Plugin {
     const plan = await this.hubPlan();
     if (!plan.size) {
       await this.baseAktualisieren();
-      return void new Notice("Alle Fach-Hubs zeigen die Base schon.");
+      return void new Notice(t("n.hubsFertig"));
     }
     const namen = [...plan.keys()].map((f) => f.basename).join(", ");
     new ConfirmModal(
       this.app,
-      "Fach-Hubs einrichten",
-      `${plan.size} Hubs bekommen oben „## Übersicht“ mit ![[${this.baseName()}#${this.settings.standardAnsicht}]]. Die Linklisten bleiben darunter unverändert.\n\n${namen}`,
-      () => void this.hubsEinrichten(plan).then((n) => new Notice(`${n} Hubs eingerichtet.`)),
+      t("c.hubs.titel"),
+      t("c.hubs.text", { n: plan.size, kopf: t("hub.ueberschrift"), embed: `![[${this.baseName()}#${ansichtName(this.settings.standardAnsicht)}]]`, namen }),
+      () => void this.hubsEinrichten(plan).then((n) => new Notice(t("n.hubsEingerichtet", { n }))),
     ).open();
   }
 
@@ -582,15 +603,32 @@ export default class ThemenNotesPlugin extends Plugin {
     return aktuelleAnsicht(await this.app.vault.cachedRead(hub), this.baseName());
   }
 
+  /** Ansicht der aktuellen Einbettung im Hub als Schlüssel (egal, in welcher Sprache die Base erzeugt wurde). */
+  async ansichtKeyVon(hub: TFile): Promise<AnsichtKey | null> {
+    const name = await this.ansichtVon(hub);
+    return name ? ansichtKey(name) : null;
+  }
+
+  /** Name einer Ansicht, wie er in der Base-Datei steht (sie kann in einer anderen Sprache erzeugt worden sein). */
+  async ansichtInBase(key: AnsichtKey): Promise<string> {
+    const f = this.app.vault.getAbstractFileByPath(this.basePfad());
+    if (f instanceof TFile) {
+      const text = await this.app.vault.cachedRead(f);
+      for (const name of alleSprachen(`v.${key}` as TextKey)) if (text.includes(`name: ${name}\n`)) return name;
+    }
+    return ansichtName(key);
+  }
+
   /** Ansicht der Base-Einbettung im Hub wechseln (bleibt in der Note gespeichert). */
-  async zeigeAnsicht(hub: TFile, ansicht: string): Promise<void> {
+  async zeigeAnsicht(hub: TFile, key: AnsichtKey): Promise<void> {
+    const ansicht = await this.ansichtInBase(key);
     let gefunden = false;
     await this.app.vault.process(hub, (c) => {
       const neu = setzeAnsicht(c, this.baseName(), ansicht);
       gefunden = neu !== null || aktuelleAnsicht(c, this.baseName()) !== null;
       return neu ?? c;
     });
-    if (!gefunden) new Notice(`Keine Einbettung von ${this.baseName()} im Hub – Befehl „Fach-Hubs einrichten“.`);
+    if (!gefunden) new Notice(t("n.keineEinbettung", { name: this.baseName() }));
     const offen = this.app.workspace.getLeavesOfType("markdown").find((l) => l.view instanceof MarkdownView && l.view.file === hub);
     if (offen) this.app.workspace.setActiveLeaf(offen, { focus: true });
     else await this.app.workspace.getLeaf(false).openFile(hub);
@@ -603,7 +641,7 @@ export async function ensureFolder(p: Plugin, folder: string): Promise<void> {
     current = current ? `${current}/${part}` : part;
     const existing = p.app.vault.getAbstractFileByPath(current);
     if (existing instanceof TFolder) continue;
-    if (existing) throw new Error(`„${current}“ ist eine Datei, kein Ordner.`);
+    if (existing) throw new Error(t("n.istDatei", { pfad: current }));
     await p.app.vault.createFolder(current);
   }
 }

@@ -3,7 +3,7 @@
 An [Obsidian](https://obsidian.md) plugin for **topic notes per subject** in a vault that is organised by folders. It keeps your existing structure and adds what is tedious by hand:
 
 ```
-01-Schule/<Subject>/<Topic>[/<Subtopic>]/<Title>.md
+<your folder>/<Subject>/<Topic>[/<Subtopic>]/<Title>.md
 ```
 
 - a quick dialog **subject → topic → title** that files the new note into the right folder (and creates new topic folders),
@@ -13,7 +13,7 @@ An [Obsidian](https://obsidian.md) plugin for **topic notes per subject** in a v
 
 It is the sibling of [Schul-Tagesnotes](https://github.com/NyxeI/obsidian-schul-tagesnotes), which uses one dated note per lesson instead. Notality needs no migration: notes stay where they are.
 
-> The plugin's interface is in **German** and the defaults fit a German school vault (`01-Schule/<Fach>/…`). Folders, subjects and the base path can be changed in the settings. Command names below are given in German with a translation.
+> The interface is available in **English and German** and follows Obsidian's language setting. Property names (`fach`, `thema`, `erstellt` …) are the same in every language, so switching the language never changes your notes.
 
 ## Features
 
@@ -31,8 +31,7 @@ It is the sibling of [Schul-Tagesnotes](https://github.com/NyxeI/obsidian-schul-
   | `erstellt` / `geaendert` | created / last edited (`YYYY-MM-DDTHH:mm`) |
 
 - **Automatic sync while you write.** When you edit a note, finished inline `#tags` are added to `tags` (not while you are still typing one), tags you delete from the text disappear from `tags` again, and `geaendert` is set to now (at most once a minute). Moving a note to another folder updates `fach`, `thema` and `unterthema`. Notes you don't touch are never changed, and the plugin never edits the text of a note.
-- **Hub overview.** One base (`01-Schule/Themen.base`) serves all subject hubs: embedded in a hub it shows all notes in that hub's folder. Views:
-  - *Nach Thema* (grouped by topic), *Zuletzt bearbeitet* (last edited), *Neueste* (newest), *Alphabetisch*, *Nach Stufe* (by grade), *Abi-relevant* (tag `Abi_Relevant`), *Ohne Properties* (notes still without properties).
+- **Hub overview.** One base (`Themen.base` next to your subjects) serves all subject hubs: embedded in a hub it shows all notes in that hub's folder. Views: *By topic*, *Recently edited*, *Newest*, *Alphabetical*, *By grade*, *Exam-relevant* (tag `Abi_Relevant`), *Without properties* (German names when created in German).
 - **Existing notes.** A command adds the properties to all existing notes after a confirmation. Only the frontmatter changes, and the file's modification date is restored.
 - **Control panel and toolbar.** A side panel follows the active note (subject, topic, tags, dates, previous/next note, view switcher, topic colours, table columns, row height). A slim toolbar sits on top of hubs and topic notes.
 - **Readable tables.** Column widths fit the note width; topic headings are coloured and larger (right-click a heading to pick a colour).
@@ -48,26 +47,26 @@ The plugin is not in the community catalogue. Install it with [BRAT](https://git
 
 ## Quick start
 
-1. Check *Settings → Notality*: area folder (`01-Schule`), subjects whose hub is not `<Folder>/<Folder>.md`, ignored folders.
+1. Open *Settings → Notality* and choose the **folder that holds your subjects** (e.g. `School`). There is no default folder; until you set one, the plugin does nothing. Optionally: subjects whose hub is not `<Folder>/<Folder>.md`, ignored folders, grade folders.
 2. Assign hotkeys under *Settings → Hotkeys* (search "Notality"), e.g.
-   - `Ctrl+Alt+N`: **Neue Themennote …** (new topic note),
-   - `Ctrl+Alt+Shift+N`: **Neue Themennote im Fach der aktuellen Note …** (in the current note's subject).
-3. Run **Fach-Hubs einrichten** (set up subject hubs) to embed the overview into every hub. Your link lists stay below it.
-4. Optional: **Properties für alle vorhandenen Notes nachrüsten** (add properties to existing notes). Make a backup first.
+   - `Ctrl+Alt+N`: **New topic note …**,
+   - `Ctrl+Alt+Shift+N`: **New topic note in the current note's subject …**.
+3. Run **Set up subject hubs** to embed the overview into every hub. Your link lists stay below it.
+4. Optional: **Add properties to all existing notes**. Make a backup first.
 
 ## Commands
 
-| Command | What it does |
+| Command (English / German) | What it does |
 |---|---|
-| Neue Themennote … | Dialog subject → topic → title |
-| Neue Themennote im Fach der aktuellen Note … | Skips the subject step; the current topic is on top |
-| Neue Themennote im Thema der aktuellen Note … | Straight to the title |
-| Properties der aktuellen Note jetzt abgleichen | Sync the active note now |
-| Properties für alle vorhandenen Notes nachrüsten … | Add properties to all notes (with confirmation) |
-| Base-Datei anlegen/aktualisieren | Create or update `Themen.base` (keeps columns chosen in the panel) |
-| Fach-Hubs einrichten … | Embed the base at the top of every subject hub (with confirmation) |
-| Themen-Panel öffnen | Open the side panel |
-| Anzeige umschalten: … | Display toggles |
+| New topic note … / Neue Themennote … | Dialog subject → topic → title |
+| … in the current note's subject / … im Fach der aktuellen Note | Skips the subject step; the current topic is on top |
+| … in the current note's topic / … im Thema der aktuellen Note | Straight to the title |
+| Sync properties of the current note now / Properties der aktuellen Note jetzt abgleichen | Sync the active note now |
+| Add properties to all existing notes / Properties für alle vorhandenen Notes nachrüsten | Add properties to all notes (with confirmation) |
+| Create/update base file / Base-Datei anlegen/aktualisieren | Create or update `Themen.base` (keeps columns chosen in the panel and the base's language) |
+| Set up subject hubs / Fach-Hubs einrichten | Embed the base at the top of every subject hub (with confirmation) |
+| Open topic panel / Themen-Panel öffnen | Open the side panel |
+| Toggle display / Anzeige umschalten | Display toggles |
 
 ## Documentation
 

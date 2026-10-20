@@ -1,4 +1,5 @@
 // Properties für vorhandene Notes nachrüsten: Plan und Probelauf-Bericht (pure).
+import { t } from "./i18n.ts";
 import { einordnen, type Struktur } from "./pfad.ts";
 import { fremdeNote, propPlan } from "./props.ts";
 
@@ -49,10 +50,10 @@ export function planNachruesten(notes: NoteDaten[], s: Struktur, jetzt = Date.no
   return out;
 }
 
-const wert = (v: unknown) => (v === null ? "(entfernt)" : Array.isArray(v) ? `[${v.join(", ")}]` : String(v));
+const wert = (v: unknown) => (v === null ? t("r.entfernt") : Array.isArray(v) ? `[${v.join(", ")}]` : String(v));
 
 /** Probelauf-Bericht als Markdown. */
-export function nachruestBericht(p: NachruestPlan, titel = "Properties nachrüsten – Probelauf"): string {
+export function nachruestBericht(p: NachruestPlan, titel = t("r.titel")): string {
   const proFach = new Map<string, NachruestEintrag[]>();
   for (const e of p.eintraege) proFach.set(e.fach, [...(proFach.get(e.fach) ?? []), e]);
   const schluessel = new Map<string, number>();
@@ -60,23 +61,23 @@ export function nachruestBericht(p: NachruestPlan, titel = "Properties nachrüst
   const zeilen = [
     `# ${titel}`,
     "",
-    `- **Zu ändern:** ${p.eintraege.length} Notes (nur Frontmatter, der Text bleibt unverändert)`,
-    `- **Schon vollständig:** ${p.vollstaendig}`,
-    `- **Ausgelassen:** ${p.hubs.length} Hubs, ${p.fremd.length} Kanban-/Excalidraw-Notes`,
+    `- ${t("r.zuAendern", { n: p.eintraege.length })}`,
+    `- ${t("r.vollstaendig", { n: p.vollstaendig })}`,
+    `- ${t("r.ausgelassen", { hubs: p.hubs.length, fremd: p.fremd.length })}`,
     "",
-    "## Properties",
+    `## ${t("r.properties")}`,
     "",
-    "| Property | Notes |",
+    `| ${t("r.property")} | ${t("r.notes")} |`,
     "|---|---|",
     ...[...schluessel].map(([k, n]) => `| ${k} | ${n} |`),
     "",
-    "## Je Fach",
+    `## ${t("r.jeFach")}`,
     "",
-    "| Fach | Notes |",
+    `| ${t("r.fach")} | ${t("r.notes")} |`,
     "|---|---|",
     ...[...proFach].sort((a, b) => a[0].localeCompare(b[0], "de")).map(([f, l]) => `| ${f} | ${l.length} |`),
     "",
-    "## Beispiele",
+    `## ${t("r.beispiele")}`,
     "",
   ];
   for (const [, l] of [...proFach].sort((a, b) => a[0].localeCompare(b[0], "de"))) {
@@ -85,7 +86,7 @@ export function nachruestBericht(p: NachruestPlan, titel = "Properties nachrüst
       for (const [k, v] of Object.entries(e.plan)) zeilen.push(`  - ${k}: ${wert(v)}`);
     }
   }
-  zeilen.push("", "## Ausgelassene Hubs", "", ...p.hubs.map((h) => `- \`${h}\``), "");
-  zeilen.push("## Alle Notes", "", ...p.eintraege.map((e) => `- \`${e.path}\`: ${Object.keys(e.plan).join(", ")}`), "");
+  zeilen.push("", `## ${t("r.hubs")}`, "", ...p.hubs.map((h) => `- \`${h}\``), "");
+  zeilen.push(`## ${t("r.alle")}`, "", ...p.eintraege.map((e) => `- \`${e.path}\`: ${Object.keys(e.plan).join(", ")}`), "");
   return zeilen.join("\n");
 }

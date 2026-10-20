@@ -1,6 +1,7 @@
 import { App, Modal, Setting, SuggestModal, TFile, setIcon } from "obsidian";
 import { dateiName, themenPfad, type Bereich, type Fach } from "./config.ts";
 import type { ThemaInfo } from "./pfad.ts";
+import { t } from "./i18n.ts";
 import { kurzZeit } from "./zeit.ts";
 
 /** Auswahl eines Fachs samt Bereich; `anzahl`/`zuletzt` = Notes im Fachordner. */
@@ -16,7 +17,8 @@ function bereichIcon(b: Bereich): string {
   return b.id === "schule" ? "graduation-cap" : b.id === "projekte" ? "folder-kanban" : "folder";
 }
 
-const notes = (n: number) => `${n} Note${n === 1 ? "" : "s"}`;
+const notes = (n: number) => (n === 1 ? t("note1") : t("notes", { n }));
+const zuletzt = (ms: number) => t("zuletzt", { wann: kurzZeit(ms) });
 
 /** Zeile im Dialog: Icon | Titel + Nebenzeile | rechts Hinweis. */
 function renderRow(el: HTMLElement, icon: string, title: string, sub: string, aside = "", badge = ""): void {
@@ -51,11 +53,11 @@ export class FachModal extends SuggestModal<FachWahl> {
     this.onPick = onPick;
     this.mehrereBereiche = new Set(items.map((i) => i.bereich.id)).size > 1;
     this.modalEl.addClass("themen-modal");
-    this.setPlaceholder("Neue Themennote – Fach wählen …");
+    this.setPlaceholder(t("m.fach.platzhalter"));
     this.setInstructions([
-      { command: "↑↓", purpose: "wählen" },
-      { command: "↵", purpose: "weiter zum Thema" },
-      { command: "esc", purpose: "abbrechen" },
+      { command: "↑↓", purpose: t("m.waehlen") },
+      { command: "↵", purpose: t("m.weiterThema") },
+      { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 60;
   }
@@ -69,8 +71,8 @@ export class FachModal extends SuggestModal<FachWahl> {
   }
 
   renderSuggestion(item: FachWahl, el: HTMLElement): void {
-    const aside = item.zuletzt ? `zuletzt ${kurzZeit(item.zuletzt)}` : "";
-    renderRow(el, bereichIcon(item.bereich), item.fach.name, item.anzahl ? notes(item.anzahl) : "noch keine Notes", aside, this.mehrereBereiche ? item.bereich.name : "");
+    const aside = item.zuletzt ? zuletzt(item.zuletzt) : "";
+    renderRow(el, bereichIcon(item.bereich), item.fach.name, item.anzahl ? notes(item.anzahl) : t("m.keineNotes"), aside, this.mehrereBereiche ? item.bereich.name : "");
   }
 
   onChooseSuggestion(item: FachWahl): void {
@@ -99,11 +101,11 @@ export class ThemaModal extends SuggestModal<ThemaChoice> {
     this.themen = vorne ? [...themen.filter((t) => t.pfad === vorne), ...themen.filter((t) => t.pfad !== vorne)] : themen;
     this.modalEl.addClass("themen-modal");
     brotkrumen(this as SuggestModal<unknown>, [fach.name]);
-    this.setPlaceholder(`Thema in ${fach.name} – tippen für ein neues Thema (Unterthema mit „/“)`);
+    this.setPlaceholder(t("m.thema.platzhalter", { fach: fach.name }));
     this.setInstructions([
-      { command: "↑↓", purpose: "wählen" },
-      { command: "↵", purpose: "weiter zum Titel" },
-      { command: "esc", purpose: "abbrechen" },
+      { command: "↑↓", purpose: t("m.waehlen") },
+      { command: "↵", purpose: t("m.weiterTitel") },
+      { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 80;
   }
@@ -121,14 +123,14 @@ export class ThemaModal extends SuggestModal<ThemaChoice> {
   }
 
   renderSuggestion(choice: ThemaChoice, el: HTMLElement): void {
-    if (choice.kind === "none") return renderRow(el, "circle-dashed", "Ohne Thema", `direkt in ${this.fach.folder}/`);
-    if (choice.kind === "new") return renderRow(el, "folder-plus", `Neues Thema: ${choice.pfad}`, "Ordner wird angelegt");
-    const t = this.themen.find((x) => x.pfad === choice.pfad);
+    if (choice.kind === "none") return renderRow(el, "circle-dashed", t("m.ohneThema"), t("m.direktIn", { ordner: this.fach.folder }));
+    if (choice.kind === "new") return renderRow(el, "folder-plus", t("m.neuesThema", { pfad: choice.pfad }), t("m.ordnerNeu"));
+    const info = this.themen.find((x) => x.pfad === choice.pfad);
     const teile = choice.pfad.split("/");
     const name = teile.pop()!;
-    const sub = [teile.length ? `in ${teile.join(" › ")}` : "", t?.anzahl ? notes(t.anzahl) : "leer"].filter(Boolean).join(" · ");
-    const icon = choice.pfad === this.vorne ? "map-pin" : t?.zuletzt ? "history" : "folder";
-    renderRow(el, icon, name, sub, t?.zuletzt ? `zuletzt ${kurzZeit(t.zuletzt)}` : "", choice.pfad === this.vorne ? "aktuell" : "");
+    const sub = [teile.length ? t("m.in", { pfad: teile.join(" › ") }) : "", info?.anzahl ? notes(info.anzahl) : t("m.leer")].filter(Boolean).join(" · ");
+    const icon = choice.pfad === this.vorne ? "map-pin" : info?.zuletzt ? "history" : "folder";
+    renderRow(el, icon, name, sub, info?.zuletzt ? zuletzt(info.zuletzt) : "", choice.pfad === this.vorne ? t("m.aktuell") : "");
   }
 
   onChooseSuggestion(choice: ThemaChoice): void {
@@ -151,10 +153,10 @@ export class TitelModal extends SuggestModal<TitelChoice> {
     this.onPick = onPick;
     this.modalEl.addClass("themen-modal");
     brotkrumen(this as SuggestModal<unknown>, krumen);
-    this.setPlaceholder("Titel der neuen Note …");
+    this.setPlaceholder(t("m.titel.platzhalter"));
     this.setInstructions([
-      { command: "↵", purpose: "anlegen bzw. öffnen" },
-      { command: "esc", purpose: "abbrechen" },
+      { command: "↵", purpose: t("m.anlegenOeffnen") },
+      { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 30;
   }
@@ -168,8 +170,8 @@ export class TitelModal extends SuggestModal<TitelChoice> {
   }
 
   renderSuggestion(choice: TitelChoice, el: HTMLElement): void {
-    if (choice.kind === "neu") return renderRow(el, "file-plus", choice.titel, `→ ${this.ziel}/${choice.titel}.md`, "neu");
-    renderRow(el, "file-text", choice.file.basename, "", `geändert ${kurzZeit(choice.file.stat.mtime)}`, "öffnen");
+    if (choice.kind === "neu") return renderRow(el, "file-plus", choice.titel, `→ ${this.ziel}/${choice.titel}.md`, t("m.neu"));
+    renderRow(el, "file-text", choice.file.basename, "", t("m.geaendert", { wann: kurzZeit(choice.file.stat.mtime) }), t("m.oeffnen"));
   }
 
   onChooseSuggestion(choice: TitelChoice): void {
@@ -194,10 +196,10 @@ export class ConfirmModal extends Modal {
     this.titleEl.setText(this.heading);
     for (const absatz of this.text.split("\n\n")) this.contentEl.createEl("p", { text: absatz });
     new Setting(this.contentEl)
-      .addButton((b) => b.setButtonText("Abbrechen").onClick(() => this.close()))
+      .addButton((b) => b.setButtonText(t("abbrechen")).onClick(() => this.close()))
       .addButton((b) =>
         b
-          .setButtonText("Ausführen")
+          .setButtonText(t("ausfuehren"))
           .setWarning()
           .onClick(() => {
             this.close();

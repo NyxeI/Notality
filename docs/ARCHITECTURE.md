@@ -17,7 +17,8 @@ Pure modules contain all decisions and are tested with `node --test`; Obsidian-b
 | `hubs.ts` | Embed planning, view switching in hubs |
 | `nachruesten.ts` | Plan and dry-run report for existing notes |
 | `ansicht.ts` | Display settings, topic colours, previous/next in folder |
-| `defaults.ts` | Settings, defaults, `mergeSettings` |
+| `defaults.ts` | Settings, defaults, `mergeSettings`, `basisPfad` |
+| `i18n.ts` | German and English texts, `t()`, language from Obsidian (`getLanguage()`) |
 
 ## Obsidian modules
 

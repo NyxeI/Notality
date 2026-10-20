@@ -1,5 +1,6 @@
 import { MarkdownView, TFile, normalizePath, parseYaml, setIcon, stringifyYaml } from "obsidian";
 import { bodyClasses, knopfSichtbar, nachbarn, type AnzeigeSchalter, type AnzeigeSettings } from "./ansicht.ts";
+import { t, type TextKey } from "./i18n.ts";
 import type ThemenNotesPlugin from "./main";
 import { setzeSpalten, setzeTabellen, tabellenBreite, type BaseDatei } from "./spalten.ts";
 
@@ -7,22 +8,22 @@ export const ANZEIGE_EVENT = "notality:anzeige";
 
 export type NoteArt = "hub" | "note" | null;
 
-/** Schalter mit Icon und Beschriftung – für Leiste, Panel, Einstellungen und Befehle. */
-export const SCHALTER: { key: AnzeigeSchalter; icon: string; name: string; desc: string }[] = [
-  { key: "kompakt", icon: "layout-list", name: "Kompakte Base-Ansichten", desc: "Werkzeugleiste und Rahmen der Themen-Base ausblenden (Sortieren/Filter erscheinen beim Darüberfahren)." },
-  { key: "propertiesInNotes", icon: "list-tree", name: "Properties in Themennotes", desc: "Den Properties-Block (fach, thema, tags, erstellt, geändert …) in Themennotes zeigen." },
-  { key: "menueleiste", icon: "panel-top", name: "Leiste in Notes", desc: "Schmale Leiste oben in Hubs und Themennotes mit Navigation und Schaltern." },
-  { key: "volleBreite", icon: "move-horizontal", name: "Tabellen in voller Breite", desc: "Die Themen-Base nutzt die ganze Fensterbreite statt der Lesebreite." },
-  { key: "bannerErben", icon: "image", name: "Banner für neue Notes", desc: "Neue Notes bekommen das Banner der Themen-Note (z. B. „A Auge/A Auge.md“) oder des Fach-Hubs." },
+/** Schalter mit Icon und Beschriftung (Text-Schlüssel) – für Leiste, Panel, Einstellungen und Befehle. */
+export const SCHALTER: { key: AnzeigeSchalter; icon: string; name: TextKey; desc: TextKey }[] = [
+  { key: "kompakt", icon: "layout-list", name: "s.kompakt", desc: "s.kompakt.desc" },
+  { key: "propertiesInNotes", icon: "list-tree", name: "s.props", desc: "s.props.desc" },
+  { key: "menueleiste", icon: "panel-top", name: "s.leiste", desc: "s.leiste.desc" },
+  { key: "volleBreite", icon: "move-horizontal", name: "s.breit", desc: "s.breit.desc" },
+  { key: "bannerErben", icon: "image", name: "s.banner", desc: "s.banner.desc" },
 ];
 
 /** Knöpfe der Leiste (ID, Icon, Beschriftung) – im Panel ein-/ausschaltbar. */
-export const LEISTE_KNOEPFE: { id: string; icon: string; name: string }[] = [
-  { id: "neu", icon: "plus", name: "Neue Note" },
-  { id: "hub", icon: "house", name: "Fach-Hub" },
-  { id: "navigation", icon: "chevrons-left-right", name: "Vorige/nächste im Ordner" },
-  { id: "schalter", icon: "toggle-right", name: "Anzeige-Schalter" },
-  { id: "panel", icon: "sliders-horizontal", name: "Panel öffnen" },
+export const LEISTE_KNOEPFE: { id: string; icon: string; name: TextKey }[] = [
+  { id: "neu", icon: "plus", name: "k.neu" },
+  { id: "hub", icon: "house", name: "k.hub" },
+  { id: "navigation", icon: "chevrons-left-right", name: "k.navigation" },
+  { id: "schalter", icon: "toggle-right", name: "k.schalter" },
+  { id: "panel", icon: "sliders-horizontal", name: "k.panel" },
 ];
 
 /** Setzt Klassen an <body> und an den Markdown-Views und baut die Leisten. */
@@ -54,7 +55,7 @@ export class Anzeige {
     await this.plugin.saveSettings();
     if (key === "volleBreite" || key === "zeilenhoehe") {
       const a = this.plugin.settings.anzeige;
-      await bearbeiteBase(this.plugin, this.plugin.settings.basePath, (base) => setzeTabellen(base, a.zeilenhoehe, tabellenBreite(a.volleBreite)));
+      await bearbeiteBase(this.plugin, this.plugin.basePfad(), (base) => setzeTabellen(base, a.zeilenhoehe, tabellenBreite(a.volleBreite)));
     }
     this.apply();
   }
@@ -62,7 +63,7 @@ export class Anzeige {
   /** Spalten einer Ansicht der Base setzen. */
   async spaltenSetzen(ansicht: string, spalten: string[]): Promise<void> {
     const breite = tabellenBreite(this.plugin.settings.anzeige.volleBreite);
-    await bearbeiteBase(this.plugin, this.plugin.settings.basePath, (base) => void setzeSpalten(base, ansicht, spalten, breite));
+    await bearbeiteBase(this.plugin, this.plugin.basePfad(), (base) => void setzeSpalten(base, ansicht, spalten, breite));
   }
 
   /** Alle offenen Markdown-Views neu markieren. */
@@ -101,7 +102,7 @@ export class Anzeige {
     const rechts = bar.createDiv({ cls: "themen-notebar-rechts" });
     const e = p.einordnung(file.path);
     if (e && art === "hub") {
-      if (zeige("neu")) knopf(links, "plus", `Neue Note in ${e.fach.name}`, () => p.waehleThema(e.bereich, e.fach), true);
+      if (zeige("neu")) knopf(links, "plus", t("l.neuIn", { fach: e.fach.name }), () => p.waehleThema(e.bereich, e.fach), true);
     }
     if (e && art === "note") {
       const hub = p.hubDatei(e.bereich, e.fach);
@@ -112,20 +113,20 @@ export class Anzeige {
           const f = path ? p.app.vault.getAbstractFileByPath(path) : null;
           if (f instanceof TFile) void p.open(f);
         };
-        knopf(links, "chevron-left", "Vorige Note im Ordner", () => geh(nb.prev)).toggleClass("is-disabled", !nb.prev);
-        const ort = [e.thema, e.unterthema].filter(Boolean).join(" › ") || "ohne Thema";
+        knopf(links, "chevron-left", t("l.vorige"), () => geh(nb.prev)).toggleClass("is-disabled", !nb.prev);
+        const ort = [e.thema, e.unterthema].filter(Boolean).join(" › ") || t("l.ohneThema");
         links.createSpan({ cls: "themen-notebar-text", text: `${ort} · ${nb.pos}/${nb.von}` });
-        knopf(links, "chevron-right", "Nächste Note im Ordner", () => geh(nb.next)).toggleClass("is-disabled", !nb.next);
+        knopf(links, "chevron-right", t("l.naechste"), () => geh(nb.next)).toggleClass("is-disabled", !nb.next);
       }
-      if (zeige("neu")) knopf(links, "plus", "Neue Note in diesem Thema", () => p.neueNoteHier(file));
+      if (zeige("neu")) knopf(links, "plus", t("l.neuHier"), () => p.neueNoteHier(file));
     }
     if (zeige("schalter")) {
       for (const s of SCHALTER.filter((x) => x.key !== "menueleiste" && x.key !== "bannerErben")) {
-        const b = knopf(rechts, s.icon, `${s.name}: ${a[s.key] ? "an" : "aus"}`, () => void p.anzeige.toggle(s.key));
+        const b = knopf(rechts, s.icon, `${t(s.name)}: ${t(a[s.key] ? "an" : "aus")}`, () => void p.anzeige.toggle(s.key));
         b.toggleClass("is-active", a[s.key]);
       }
     }
-    if (zeige("panel")) knopf(rechts, "sliders-horizontal", "Themen-Panel öffnen", () => void p.openPanel());
+    if (zeige("panel")) knopf(rechts, "sliders-horizontal", t("cmd.panel"), () => void p.openPanel());
     return bar;
   }
 }

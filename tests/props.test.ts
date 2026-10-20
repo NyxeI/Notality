@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { fertigeTags, inlineTags, syncTags, tagList } from "../src/tags.ts";
 import { propPlan, textDatum, wendeAn } from "../src/props.ts";
 import { einordnen, faecherIn, type Struktur } from "../src/pfad.ts";
-import { DEFAULT_SETTINGS, mergeSettings } from "../src/defaults.ts";
+import { DEFAULT_SETTINGS as STANDARD, basisPfad, mergeSettings } from "../src/defaults.ts";
+import { SCHULE as DEFAULT_SETTINGS } from "./support/schule.ts";
 import { kurzZeit, parseStempel, stempel } from "../src/zeit.ts";
 
 const schule = DEFAULT_SETTINGS.bereiche[0];
@@ -97,13 +98,30 @@ test("Zeitstempel", () => {
   assert.equal(kurzZeit(t0, t0 + 30 * 86_400_000), "20.10.26");
 });
 
-test("mergeSettings: Standardwerte, gespeicherte Werte gewinnen", () => {
-  const m = mergeSettings({ automatik: false, bereiche: [{ id: "projekte", aktiv: true }], anzeige: { zeilenhoehe: "tall" }, unbekannt: 1 });
+test("mergeSettings: Standardwerte ohne Ordner, gespeicherte Werte gewinnen, alter Ansichtsname wird Schlüssel", () => {
+  assert.equal(STANDARD.bereiche.length, 1);
+  assert.equal(STANDARD.bereiche[0].root, "");
+  assert.equal(STANDARD.basePath, "");
+  const m = mergeSettings({
+    automatik: false,
+    bereiche: [{ id: "schule", root: "01-Schule" }, { id: "projekte", name: "Projekte", root: "04-Projekte", property: "projekt", aktiv: false }],
+    standardAnsicht: "Nach Thema",
+    anzeige: { zeilenhoehe: "tall" },
+    unbekannt: 1,
+  });
   assert.equal(m.automatik, false);
-  assert.equal(m.bereiche.find((b) => b.id === "projekte")!.aktiv, true);
+  assert.equal(m.bereiche[0].root, "01-Schule");
+  assert.equal(m.bereiche[0].property, "fach");
   assert.equal(m.bereiche.find((b) => b.id === "projekte")!.root, "04-Projekte");
+  assert.equal(m.standardAnsicht, "thema");
   assert.equal(m.anzeige.zeilenhoehe, "tall");
   assert.equal(m.anzeige.kompakt, true);
   assert.equal("unbekannt" in m, false);
-  assert.notEqual(mergeSettings(null).anzeige, DEFAULT_SETTINGS.anzeige);
+  assert.notEqual(mergeSettings(null).anzeige, STANDARD.anzeige);
+});
+
+test("basisPfad: eingestellt, sonst neben dem ersten Bereich, ohne Ordner im Vault-Wurzelordner", () => {
+  assert.equal(basisPfad(DEFAULT_SETTINGS), "01-Schule/Themen.base");
+  assert.equal(basisPfad({ ...DEFAULT_SETTINGS, basePath: "X/Y.base" }), "X/Y.base");
+  assert.equal(basisPfad(STANDARD), "Themen.base");
 });

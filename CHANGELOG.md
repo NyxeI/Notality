@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Interface in English and German, following Obsidian's language. Property names stay the same.
+- No default folder any more: choose the folder that holds your subjects in the settings (with folder suggestions). Grade folders and subject overrides are empty by default.
+- The base is created next to the subject folders unless a path is set; an existing base keeps the language of its view names.
+
 ## 0.1.1
 
 - License changed from MIT to GPL-3.0.

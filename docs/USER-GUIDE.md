@@ -1,5 +1,9 @@
 # User guide
 
+## Language
+
+The interface follows Obsidian's language: German if Obsidian is set to German, English otherwise. Property names (`typ`, `fach`, `thema`, `unterthema`, `stufe`, `tags`, `erstellt`, `geaendert`) are the same in every language. The base's view names are written in the language that was active when the base was created; an existing base keeps its language when it is updated, so hub embeds like `![[Themen.base#Nach Thema]]` keep working after a language switch.
+
 ## Folder model
 
 ```
@@ -7,11 +11,11 @@
 <area root>/<Subject>/[<Grade>/]<Topic>[/<Subtopic>…]/<Title>.md
 ```
 
-- **Area** (*Bereich*): a root folder with one folder per subject. Defaults: `01-Schule` (property `fach`, on) and `04-Projekte` (property `projekt`, off).
+- **Area** (*Bereich*): a root folder with one folder per subject, property `fach`. **No folder is set by default**: choose it in the settings (with folder suggestions). Until then the plugin creates and changes nothing.
 - **Subject** (*Fach*): every direct subfolder of the area root, except ignored folders. Its hub is `<Folder>/<Folder>.md`; exceptions go into *Abweichende Fächer* as `Folder | Name | Hub`, e.g. `Politik und Gesellschaft | Politik und Gesellschaft | PuG`.
-- **Grade** (*Stufe*): a folder directly under the subject that matches the regular expression *Stufen-Ordner* (default `^(11|12|13)(-[12])?$`). It becomes the property `stufe`, and the next folder is the topic.
+- **Grade** (*Stufe*): a folder directly under the subject that matches the regular expression *Grade folders* (empty by default; e.g. `^(11|12|13)(-[12])?$`). It becomes the property `stufe`, and the next folder is the topic.
 - **Topic** (*Thema*): the first folder below the subject (or grade); deeper folders become `unterthema` (`Maria Stuart`, `A/B`).
-- **Ignored folders** (*Ignorierte Ordner*, compared case-insensitively): never subjects or topics; notes inside them are left alone. Default: `attachments`, `AufgabenFiles`, `Ink`, `Excalidraw`, `Drawing`, `Writing`.
+- **Ignored folders** (*Ignorierte Ordner*, compared case-insensitively): never subjects or topics; notes inside them are left alone. Default: `attachments`, `Ink`, `Excalidraw`, `Drawing`, `Writing`.
 - Notes with `kanban-plugin` or `excalidraw-plugin` in their frontmatter are always left alone.
 
 ## Properties
@@ -50,7 +54,7 @@ The sync runs about a second after Obsidian has re-read a changed note.
 
 ## The base
 
-`Themen.base` (path in the settings) has a per-view filter `file.inFolder(this.file.folder)`. Embedded in a hub it shows every note in the hub's folder and below, without the hub itself. Opened directly, it shows everything below the base's own folder.
+`Themen.base` (default: next to your subject folders; path in the settings) has a per-view filter `file.inFolder(this.file.folder)`. Embedded in a hub it shows every note in the hub's folder and below, without the hub itself. Opened directly, it shows everything below the base's own folder.
 
 | View | Content |
 |---|---|

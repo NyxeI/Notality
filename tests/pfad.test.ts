@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { abweichungen, einordnen, faecherIn, pfadProps, themenVon, type Struktur } from "../src/pfad.ts";
-import { DEFAULT_SETTINGS, stufenRegex } from "../src/defaults.ts";
+import { stufenRegex } from "../src/defaults.ts";
+import { SCHULE as DEFAULT_SETTINGS } from "./support/schule.ts";
 import { dateiName, parseOverrides, themenPfad } from "../src/config.ts";
 
 const schule = DEFAULT_SETTINGS.bereiche[0];
@@ -82,4 +83,10 @@ test("Namen: verbotene Zeichen, Themenpfade", () => {
     { folder: "Politik und Gesellschaft", name: "PuG", hub: "PuG" },
     { folder: "Kunst", name: "Kunst", hub: "Kunst" },
   ]);
+});
+
+test("Bereich ohne Ordner ordnet nichts ein", () => {
+  const leer: Struktur = { ...s, bereiche: [{ ...schule, root: "" }] };
+  assert.equal(einordnen("Physik/A Auge/x.md", leer), null);
+  assert.equal(einordnen("01-Schule/Physik/A Auge/x.md", leer), null);
 });

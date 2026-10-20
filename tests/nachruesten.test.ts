@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nachruestBericht, planNachruesten } from "../src/nachruesten.ts";
 import { faecherIn, type Struktur } from "../src/pfad.ts";
-import { DEFAULT_SETTINGS } from "../src/defaults.ts";
+import { SCHULE as DEFAULT_SETTINGS } from "./support/schule.ts";
 
 const schule = DEFAULT_SETTINGS.bereiche[0];
 const s: Struktur = {

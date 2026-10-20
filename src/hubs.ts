@@ -6,10 +6,10 @@ export function embedRegex(baseName: string): RegExp {
 }
 
 /**
- * Neuer Hub-Inhalt mit `## Übersicht` + `![[<base>#<ansicht>]]` direkt unter dem Frontmatter
+ * Neuer Hub-Inhalt mit `## <kopf>` + `![[<base>#<ansicht>]]` direkt unter dem Frontmatter
  * (nach einer ersten Zeile, die nur aus Tags besteht); null = die Base ist schon eingebettet.
  */
-export function planHub(content: string, baseName: string, ansicht: string): string | null {
+export function planHub(content: string, baseName: string, ansicht: string, kopf = "Übersicht"): string | null {
   if (embedRegex(baseName).test(content)) return null;
   const fm = /^---\r?\n[\s\S]*?\r?\n---\r?\n/.exec(content)?.[0] ?? "";
   let rest = content.slice(fm.length);
@@ -19,7 +19,7 @@ export function planHub(content: string, baseName: string, ansicht: string): str
     tagZeile = `${m[1].trim()}\n`;
     rest = rest.slice(m[0].length);
   }
-  return `${fm}${tagZeile}## Übersicht\n![[${baseName}#${ansicht}]]\n\n${rest.replace(/^\s*\n/, "")}`;
+  return `${fm}${tagZeile}## ${kopf}\n![[${baseName}#${ansicht}]]\n\n${rest.replace(/^\s*\n/, "")}`;
 }
 
 /** Ansicht der (ersten) Einbettung wechseln; null = keine Einbettung gefunden oder schon diese Ansicht. */

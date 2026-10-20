@@ -1,4 +1,5 @@
 // Zeitstempel für "erstellt"/"geaendert" (pure): Ortszeit im Format der Obsidian-Property „Datum & Uhrzeit“.
+import { t } from "./i18n.ts";
 
 const zwei = (n: number) => String(n).padStart(2, "0");
 
@@ -26,9 +27,9 @@ export function kurzZeit(ms: number, jetzt = Date.now()): string {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   };
   const diff = Math.round((tag(jetzt) - tag(ms)) / 86_400_000);
-  if (diff <= 0) return "heute";
-  if (diff === 1) return "gestern";
-  if (diff < 7) return `vor ${diff} Tagen`;
+  if (diff <= 0) return t("heute");
+  if (diff === 1) return t("gestern");
+  if (diff < 7) return t("vorTagen", { n: diff });
   const d = new Date(ms);
   return `${zwei(d.getDate())}.${zwei(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
 }

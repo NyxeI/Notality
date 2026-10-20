@@ -54,7 +54,7 @@ export function faecherIn(
 export function einordnen(path: string, s: Struktur): Einordnung | null {
   if (!path.endsWith(".md")) return null;
   for (const bereich of s.bereiche) {
-    if (!bereich.aktiv) continue;
+    if (!bereich.aktiv || !bereich.root.trim()) continue;
     const prefix = `${bereich.root}/`;
     if (!path.startsWith(prefix)) continue;
     const parts = path.slice(prefix.length).split("/");

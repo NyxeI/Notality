@@ -6,7 +6,8 @@ import { setzeThemaFarbe } from "./gruppen.ts";
 import type ThemenNotesPlugin from "./main";
 import { SPALTEN, type BaseDatei } from "./spalten.ts";
 import { tagList } from "./tags.ts";
-import { ANSICHTEN } from "./templates.ts";
+import { ANSICHTEN, ansichtName, type AnsichtKey } from "./templates.ts";
+import { t } from "./i18n.ts";
 import { kurzZeit, parseStempel } from "./zeit.ts";
 
 export const PANEL_VIEW = "notality-panel";
@@ -22,7 +23,7 @@ export class ThemenPanel extends ItemView {
   private offen: Record<string, boolean>;
   /** Zähler gegen parallele render()-Läufe: nur der letzte Lauf darf weiter anhängen. */
   private renderGen = 0;
-  private spaltenAnsicht: string = ANSICHTEN[0];
+  private spaltenAnsicht: string = ansichtName("thema");
 
   constructor(leaf: WorkspaceLeaf, plugin: ThemenNotesPlugin) {
     super(leaf);
@@ -35,7 +36,7 @@ export class ThemenPanel extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Themen-Panel";
+    return t("p.titel");
   }
 
   getIcon(): string {
@@ -85,21 +86,22 @@ export class ThemenPanel extends ItemView {
     // ---------- Kopf ----------
     const kopf = el.createDiv({ cls: "themen-panel-kopf" });
     setIcon(kopf.createSpan({ cls: "themen-panel-kopf-icon" }), art === "hub" ? "house" : art === "note" ? "file-text" : "file");
-    kopf.createSpan({ cls: "themen-panel-titel", text: file?.basename ?? "Keine Note aktiv" });
-    if (art) kopf.createSpan({ cls: "themen-badge", text: art === "hub" ? "Hub" : "Note" });
+    kopf.createSpan({ cls: "themen-panel-titel", text: file?.basename ?? t("p.keineNote") });
+    if (art) kopf.createSpan({ cls: "themen-badge", text: art === "hub" ? t("p.hub") : t("p.note") });
 
     // ---------- Knöpfe ----------
     const kacheln = el.createDiv({ cls: "themen-kacheln" });
     if (art === "hub" && e && file) {
       const st = p.fachStats(e.bereich, e.fach);
-      kachel(kacheln, "plus", "Neu", `Neue Note in ${e.fach.name}`, () => p.waehleThema(e.bereich, e.fach));
-      kachel(kacheln, "list-tree", "Themen", "Ansicht „Nach Thema“", () => void p.zeigeAnsicht(file, "Nach Thema"));
-      kachel(kacheln, "history", "Zuletzt", "Ansicht „Zuletzt bearbeitet“", () => void p.zeigeAnsicht(file, "Zuletzt bearbeitet"));
-      kachel(kacheln, "file-question", "Prüfen", "Ansicht „Ohne Properties“", () => void p.zeigeAnsicht(file, "Ohne Properties"), st.ohneProps || undefined);
+      const ansicht = (key: AnsichtKey) => t("p.ansicht", { name: ansichtName(key) });
+      kachel(kacheln, "plus", t("p.neu"), t("l.neuIn", { fach: e.fach.name }), () => p.waehleThema(e.bereich, e.fach));
+      kachel(kacheln, "list-tree", t("p.themen"), ansicht("thema"), () => void p.zeigeAnsicht(file, "thema"));
+      kachel(kacheln, "history", t("p.zuletzt"), ansicht("zuletzt"), () => void p.zeigeAnsicht(file, "zuletzt"));
+      kachel(kacheln, "file-question", t("p.pruefen"), ansicht("ohne"), () => void p.zeigeAnsicht(file, "ohne"), st.ohneProps || undefined);
       const zahlen = el.createDiv({ cls: "themen-panel-zahlen" });
-      zahl(zahlen, st.notes, "Notes");
-      zahl(zahlen, st.themen, "Themen");
-      zahl(zahlen, st.ohneProps, "ohne Properties");
+      zahl(zahlen, st.notes, t("p.notes"));
+      zahl(zahlen, st.themen, t("p.themen"));
+      zahl(zahlen, st.ohneProps, t("p.ohneProps"));
     } else if (art === "note" && e && file) {
       const nb = nachbarn(p.notesImOrdner(file), file.path);
       const geh = (path: string | null) => {
@@ -107,80 +109,80 @@ export class ThemenPanel extends ItemView {
         if (f instanceof TFile) void p.open(f);
       };
       const hub = p.hubDatei(e.bereich, e.fach);
-      if (hub) kachel(kacheln, "house", "Hub", `Hub ${e.fach.name}`, () => void p.open(hub));
-      kachel(kacheln, "chevron-left", "Vorige", "Vorige Note im Ordner", () => geh(nb.prev)).toggleClass("is-disabled", !nb.prev);
-      kachel(kacheln, "chevron-right", "Nächste", "Nächste Note im Ordner", () => geh(nb.next)).toggleClass("is-disabled", !nb.next);
-      kachel(kacheln, "file-plus", "+ Thema", "Neue Note im selben Thema", () => p.neueNoteHier(file));
-      kachel(kacheln, "folder-plus", "+ Fach", `Neue Note in ${e.fach.name}`, () => p.waehleThema(e.bereich, e.fach, p.themaPfadVon(file)));
+      if (hub) kachel(kacheln, "house", t("p.hub"), t("p.hubVon", { fach: e.fach.name }), () => void p.open(hub));
+      kachel(kacheln, "chevron-left", t("p.vorige"), t("l.vorige"), () => geh(nb.prev)).toggleClass("is-disabled", !nb.prev);
+      kachel(kacheln, "chevron-right", t("p.naechste"), t("l.naechste"), () => geh(nb.next)).toggleClass("is-disabled", !nb.next);
+      kachel(kacheln, "file-plus", t("p.plusThema"), t("p.plusThema.tip"), () => p.neueNoteHier(file));
+      kachel(kacheln, "folder-plus", t("p.plusFach"), t("l.neuIn", { fach: e.fach.name }), () => p.waehleThema(e.bereich, e.fach, p.themaPfadVon(file)));
       const info = el.createDiv({ cls: "themen-panel-info" });
-      zeile(info, "Fach", e.fach.name);
-      zeile(info, "Thema", `${e.thema ?? "–"}${nb.von ? ` · ${nb.pos}/${nb.von}` : ""}`);
-      if (e.unterthema) zeile(info, "Unterthema", e.unterthema);
-      if (e.stufe) zeile(info, "Stufe", e.stufe);
+      zeile(info, t("p.fach"), e.fach.name);
+      zeile(info, t("p.thema"), `${e.thema ?? "–"}${nb.von ? ` · ${nb.pos}/${nb.von}` : ""}`);
+      if (e.unterthema) zeile(info, t("p.unterthema"), e.unterthema);
+      if (e.stufe) zeile(info, t("p.stufe"), e.stufe);
       const tags = tagList(fm.tags);
-      if (tags.length) zeile(info, "Tags", tags.map((t) => `#${t}`).join(" "));
+      if (tags.length) zeile(info, t("p.tags"), tags.map((t) => `#${t}`).join(" "));
       const erstellt = parseStempel(fm.erstellt);
       const geaendert = parseStempel(fm.geaendert);
-      if (erstellt) zeile(info, "Erstellt", kurzZeit(erstellt));
-      if (geaendert) zeile(info, "Geändert", kurzZeit(geaendert));
-      if (fm.typ !== "themennote") zeile(info, "Status", "noch ohne Properties (kommen bei der nächsten Bearbeitung)").addClass("themen-warn");
+      if (erstellt) zeile(info, t("p.erstellt"), kurzZeit(erstellt));
+      if (geaendert) zeile(info, t("p.geaendert"), kurzZeit(geaendert));
+      if (fm.typ !== "themennote") zeile(info, t("p.status"), t("p.ohnePropsHinweis")).addClass("themen-warn");
     } else {
-      kachel(kacheln, "file-plus", "Neu", "Neue Themennote …", () => p.waehleFach());
+      kachel(kacheln, "file-plus", t("p.neu"), t("p.neuTip"), () => p.waehleFach());
     }
 
     // ---------- Hub: Ansicht, Themenfarben, Spalten ----------
     if (art === "hub" && e && file) {
-      const aktuell = await p.ansichtVon(file);
+      const aktuell = await p.ansichtKeyVon(file);
       if (gen !== this.renderGen) return;
-      this.abschnitt(el, "ansicht", "Ansicht im Hub", (box) => {
+      this.abschnitt(el, "ansicht", t("p.ansichtImHub"), (box) => {
         const chips = box.createDiv({ cls: "themen-chips" });
-        for (const v of ANSICHTEN) {
-          const c = chips.createEl("button", { cls: "themen-chip", text: v });
-          c.toggleClass("is-active", v === aktuell);
-          c.addEventListener("click", () => void p.zeigeAnsicht(file, v));
+        for (const k of ANSICHTEN) {
+          const c = chips.createEl("button", { cls: "themen-chip", text: ansichtName(k) });
+          c.toggleClass("is-active", k === aktuell);
+          c.addEventListener("click", () => void p.zeigeAnsicht(file, k));
         }
       });
-      this.abschnitt(el, "farben", "Themenfarben", (box) => this.farben(box, e.bereich, e.fach));
-      await this.abschnittAsync(el, "spalten", "Spalten", (box) => this.spalten(box));
+      this.abschnitt(el, "farben", t("p.themenfarben"), (box) => this.farben(box, e.bereich, e.fach));
+      await this.abschnittAsync(el, "spalten", t("p.spalten"), (box) => this.spalten(box));
       if (gen !== this.renderGen) return; // ein neuerer Lauf hat das Panel inzwischen neu aufgebaut
     }
 
     // ---------- Darstellung ----------
-    this.abschnitt(el, "darstellung", "Darstellung", (box) => {
+    this.abschnitt(el, "darstellung", t("p.darstellung"), (box) => {
       const reihe = box.createDiv({ cls: "themen-toggle-reihe" });
       for (const s of SCHALTER) {
         const b = reihe.createEl("button", { cls: "themen-toggle clickable-icon" });
         setIcon(b, s.icon);
-        setTooltip(b, `${s.name}: ${p.settings.anzeige[s.key] ? "an" : "aus"}\n${s.desc}`);
+        setTooltip(b, `${t(s.name)}: ${t(p.settings.anzeige[s.key] ? "an" : "aus")}\n${t(s.desc)}`);
         b.toggleClass("is-active", p.settings.anzeige[s.key]);
         b.addEventListener("click", () => void p.anzeige.toggle(s.key));
       }
       const zh = box.createDiv({ cls: "themen-zeile-steuer" });
-      zh.createSpan({ cls: "themen-panel-label", text: "Zeilen" });
+      zh.createSpan({ cls: "themen-panel-label", text: t("p.zeilen") });
       const seg = zh.createDiv({ cls: "themen-segment" });
       for (const [wert, text] of [["", "S"], ["medium", "M"], ["tall", "L"], ["extra", "XL"]] as [Zeilenhoehe, string][]) {
         const b = seg.createEl("button", { text });
-        setTooltip(b, `Zeilenhöhe ${text} – mehr Platz für umbrechende Spalten`);
+        setTooltip(b, t("p.zeilen.tip", { groesse: text }));
         b.toggleClass("is-active", p.settings.anzeige.zeilenhoehe === wert);
         b.addEventListener("click", () => void p.anzeige.set("zeilenhoehe", wert));
       }
       const gr = box.createDiv({ cls: "themen-zeile-steuer" });
-      gr.createSpan({ cls: "themen-panel-label", text: "Themenköpfe" });
+      gr.createSpan({ cls: "themen-panel-label", text: t("p.koepfe") });
       const slider = gr.createEl("input", { type: "range", attr: { min: "1", max: "1.6", step: "0.05" } });
       slider.value = String(p.settings.anzeige.gruppenGroesse);
-      setTooltip(slider, "Schriftgröße der Themenköpfe");
+      setTooltip(slider, t("p.koepfe.tip"));
       slider.addEventListener("input", () => document.body.style.setProperty("--themen-gruppen-groesse", slider.value));
       slider.addEventListener("change", () => void p.anzeige.set("gruppenGroesse", Number(slider.value)));
     });
 
     // ---------- Leiste ----------
-    this.abschnitt(el, "leiste", "Knöpfe der Leiste", (box) => {
+    this.abschnitt(el, "leiste", t("p.knoepfe"), (box) => {
       const chips = box.createDiv({ cls: "themen-chips" });
       for (const k of LEISTE_KNOEPFE) {
         const an = p.settings.anzeige.leisteKnoepfe[k.id] !== false;
         const c = chips.createEl("button", { cls: "themen-chip themen-chip-icon" });
         setIcon(c.createSpan(), k.icon);
-        c.createSpan({ text: k.name });
+        c.createSpan({ text: t(k.name) });
         c.toggleClass("is-active", an);
         c.addEventListener("click", () => void p.anzeige.set("leisteKnoepfe", { ...p.settings.anzeige.leisteKnoepfe, [k.id]: !an }));
       }
@@ -188,8 +190,8 @@ export class ThemenPanel extends ItemView {
 
     // ---------- Zuletzt bearbeitet ----------
     const zuletzt = p.zuletztBearbeitet(e?.istHub ? e : null, 8);
-    this.abschnitt(el, "zuletzt", e?.istHub ? `Zuletzt in ${e.fach.name}` : "Zuletzt bearbeitet", (box) => {
-      if (!zuletzt.length) box.createDiv({ cls: "themen-panel-leer", text: "Noch keine Notes." });
+    this.abschnitt(el, "zuletzt", e?.istHub ? t("p.zuletztIn", { fach: e.fach.name }) : t("p.zuletztBearbeitet"), (box) => {
+      if (!zuletzt.length) box.createDiv({ cls: "themen-panel-leer", text: t("p.nochKeine") });
       for (const f of zuletzt) {
         const r = box.createDiv({ cls: "themen-panel-link" });
         setIcon(r.createSpan(), "file-text");
@@ -209,32 +211,32 @@ export class ThemenPanel extends ItemView {
     const stdInput = std.createEl("input", { type: "color" });
     stdInput.value = a.gruppenFarbe || "#7c5cff";
     stdInput.addEventListener("change", () => void p.anzeige.set("gruppenFarbe", stdInput.value));
-    std.createSpan({ cls: "themen-farbzeile-name", text: "Standardfarbe" });
-    if (a.gruppenFarbe) zurueck(std, "Akzentfarbe des Themes verwenden", () => void p.anzeige.set("gruppenFarbe", ""));
+    std.createSpan({ cls: "themen-farbzeile-name", text: t("p.standardfarbe") });
+    if (a.gruppenFarbe) zurueck(std, t("p.akzent"), () => void p.anzeige.set("gruppenFarbe", ""));
     const themen = p
       .themen(bereich, fach)
-      .filter((t) => !t.pfad.includes("/") && t.anzahl > 0 && !p.istStufe(t.pfad))
+      .filter((x) => !x.pfad.includes("/") && x.anzahl > 0 && !p.istStufe(x.pfad))
       .sort((x, y) => x.pfad.localeCompare(y.pfad, "de", { numeric: true }));
-    for (const t of themen) {
+    for (const thema of themen) {
       const z = box.createDiv({ cls: "themen-farbzeile" });
       const input = z.createEl("input", { type: "color" });
-      const eigen = a.themaFarben[farbSchluessel(fach.name, t.pfad)];
-      input.value = themaFarbe(a, fach.name, t.pfad) ?? "#7c5cff";
+      const eigen = a.themaFarben[farbSchluessel(fach.name, thema.pfad)];
+      input.value = themaFarbe(a, fach.name, thema.pfad) ?? "#7c5cff";
       input.toggleClass("is-standard", !eigen);
-      input.addEventListener("change", () => void setzeThemaFarbe(p, fach.name, t.pfad, input.value));
-      z.createSpan({ cls: "themen-farbzeile-name", text: t.pfad });
-      z.createSpan({ cls: "themen-panel-label", text: String(t.anzahl) });
-      if (eigen) zurueck(z, "Auf Standardfarbe zurücksetzen", () => void setzeThemaFarbe(p, fach.name, t.pfad, null));
+      input.addEventListener("change", () => void setzeThemaFarbe(p, fach.name, thema.pfad, input.value));
+      z.createSpan({ cls: "themen-farbzeile-name", text: thema.pfad });
+      z.createSpan({ cls: "themen-panel-label", text: String(thema.anzahl) });
+      if (eigen) zurueck(z, t("p.aufStandard"), () => void setzeThemaFarbe(p, fach.name, thema.pfad, null));
     }
-    box.createDiv({ cls: "themen-panel-leer", text: "Tipp: Rechtsklick auf einen Themenkopf im Hub." });
+    box.createDiv({ cls: "themen-panel-leer", text: t("p.tippRechtsklick") });
   }
 
   /** Spalten einer Ansicht der Base an-/abwählen (gilt für alle Hubs). */
   private async spalten(box: HTMLElement): Promise<void> {
     const p = this.plugin;
-    const pfad = p.settings.basePath;
+    const pfad = p.basePfad();
     const f = this.app.vault.getAbstractFileByPath(normalizePath(pfad));
-    if (!(f instanceof TFile)) return void box.createDiv({ cls: "themen-panel-leer", text: `${pfad} fehlt – Befehl „Base-Datei anlegen/aktualisieren“.` });
+    if (!(f instanceof TFile)) return void box.createDiv({ cls: "themen-panel-leer", text: t("p.baseFehlt", { pfad }) });
     const base = (parseYaml(await this.app.vault.cachedRead(f)) ?? {}) as BaseDatei;
     const views = (base.views ?? []).filter((v) => v.type === "table" && v.name);
     if (!views.some((v) => v.name === this.spaltenAnsicht)) this.spaltenAnsicht = views[0]?.name ?? "";
@@ -249,14 +251,14 @@ export class ThemenPanel extends ItemView {
     const chips = box.createDiv({ cls: "themen-chips" });
     for (const s of SPALTEN) {
       const an = order.includes(s.name);
-      const c = chips.createEl("button", { cls: "themen-chip", text: s.label });
+      const c = chips.createEl("button", { cls: "themen-chip", text: t(s.label) });
       c.toggleClass("is-active", an);
       c.addEventListener("click", () => {
         const neu = an ? order.filter((o) => o !== s.name) : [...order, s.name];
         void p.anzeige.spaltenSetzen(this.spaltenAnsicht, neu.filter((o) => o !== "file.name")).then(() => this.render());
       });
     }
-    box.createDiv({ cls: "themen-panel-leer", text: `Gilt für alle Hubs, die ${p.baseName()} nutzen.` });
+    box.createDiv({ cls: "themen-panel-leer", text: t("p.giltFuer", { name: p.baseName() }) });
   }
 
   private abschnitt(el: HTMLElement, id: string, titel: string, inhalt: (box: HTMLElement) => void): void {
