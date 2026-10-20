@@ -1,0 +1,523 @@
+/* ===== Themen-Notes ===================================================
+   1. Dialoge (Neue Themennote: Fach → Thema → Titel)
+   2. Kompakte Hub-Ansichten: nur bei body.themen-kompakt (Einstellung) und nur
+      für die Themen-Base (Klasse .themen-base, gesetzt vom Plugin an der Einbettung). */
+
+/* ---------- 1. Dialoge ---------- */
+.themen-modal .themen-brotkrumen {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-1);
+  padding: var(--size-4-2) var(--size-4-3) 0;
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+.themen-modal .themen-brotkrumen-teil:last-child {
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+}
+.themen-modal .themen-brotkrumen-pfeil svg {
+  width: 12px;
+  height: 12px;
+}
+.themen-modal .themen-suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+}
+.themen-modal .themen-suggestion-icon {
+  display: flex;
+  color: var(--text-muted);
+}
+.themen-modal .suggestion-item.is-selected .themen-suggestion-icon {
+  color: var(--interactive-accent);
+}
+.themen-modal .themen-suggestion-main {
+  flex: 1;
+  min-width: 0;
+}
+.themen-modal .themen-suggestion-title {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.themen-modal .themen-suggestion-sub {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+.themen-modal .themen-suggestion-aside {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.themen-modal .themen-badge {
+  font-size: var(--font-ui-smaller);
+  padding: 0 var(--size-4-2);
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+.themen-modal .themen-modal-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-1);
+  padding: var(--size-4-2) var(--size-4-3);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* ---------- 2. Kompakte Hub-Ansichten ---------- */
+body.themen-kompakt .bases-embed.themen-base {
+  --themen-gap: var(--size-4-1);
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* Werkzeugleiste: nur Ansichten-Wechsel und Trefferzahl; der Rest beim Darüberfahren */
+body.themen-kompakt .bases-embed.themen-base
+  .bases-toolbar-item:not(.bases-toolbar-views-menu, .bases-toolbar-result-count) {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+body.themen-kompakt .bases-embed.themen-base:hover
+  .bases-toolbar-item {
+  opacity: 1;
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-header {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-toolbar-result-count {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+/* Tabelle: ohne Rahmen und Kopfhintergrund, kompakte Zeilen, feine Trennlinien */
+body.themen-kompakt .bases-embed.themen-base
+  :is(.bases-table, .bases-thead, .bases-table-header, .bases-td, .bases-table-cell) {
+  border: none;
+  background: transparent;
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-thead {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-tr {
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-tr:hover {
+  background: var(--background-modifier-hover);
+}
+body.themen-kompakt .bases-embed.themen-base
+  .bases-td {
+  padding-block: var(--themen-gap);
+}
+/* Auswahl-/Nummernspalte weg */
+body.themen-kompakt .bases-embed.themen-base
+  .bases-table-selection {
+  display: none;
+}
+
+/* Gruppenköpfe klein und gedämpft */
+body.themen-kompakt .bases-embed.themen-base
+  :is(.bases-group-heading, .bases-list-group > :first-child) {
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding-block: var(--size-4-2) var(--size-4-1);
+}
+
+/* ---------- 3. Anzeige-Schalter ---------- */
+/* Properties-Block in Themennotes ausblenden */
+/* Obsidian steuert die Sichtbarkeit über diese Variablen (Lese- und Bearbeitungsansicht) */
+body.themen-props-aus .themen-note {
+  --metadata-display-editing: none;
+  --metadata-display-reading: none;
+}
+
+/* ---------- 4. Menüleiste in Notes ---------- */
+/* Leiste fest oben: der Inhaltsbereich wird zur Flex-Spalte, damit er nicht um die Höhe der Leiste überläuft */
+.workspace-leaf-content:is(.themen-hub, .themen-note) > .view-content:has(> .themen-notebar) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.workspace-leaf-content:is(.themen-hub, .themen-note) > .view-content:has(> .themen-notebar) > :not(.themen-notebar) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.themen-notebar {
+  flex: 0 0 auto;
+}
+.themen-notebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+  padding: var(--size-2-2) var(--size-4-3);
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  font-size: var(--font-ui-small);
+  flex-wrap: wrap;
+}
+.themen-notebar-links,
+.themen-notebar-rechts {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  flex-wrap: wrap;
+}
+.themen-notebar-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  padding: var(--size-2-1) var(--size-2-3);
+  height: auto;
+}
+.themen-notebar-knopf.is-active {
+  color: var(--interactive-accent);
+}
+.themen-notebar-knopf.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.themen-notebar-text {
+  color: var(--text-muted);
+  padding: 0 var(--size-2-2);
+}
+.themen-badge-warn {
+  background: rgba(var(--color-orange-rgb), 0.15);
+  color: var(--color-orange);
+}
+
+/* ---------- 6. Steuer-Panel ---------- */
+.themen-panel {
+  padding: var(--size-4-2) var(--size-4-3);
+  font-size: var(--font-ui-small);
+}
+.themen-panel-kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  margin-bottom: var(--size-4-3);
+}
+.themen-panel-kopf-icon {
+  display: flex;
+  color: var(--interactive-accent);
+}
+.themen-panel-titel {
+  font-weight: var(--font-semibold);
+  font-size: var(--font-ui-medium);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Knopf-Kacheln */
+.themen-kacheln {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: var(--size-2-3);
+  margin-bottom: var(--size-4-3);
+}
+.themen-kachel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-2-1);
+  height: auto;
+  padding: var(--size-4-2) var(--size-2-2);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  box-shadow: none;
+}
+.themen-kachel:hover {
+  background: var(--background-modifier-hover);
+}
+.themen-kachel-icon {
+  display: flex;
+  color: var(--interactive-accent);
+}
+.themen-kachel-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.themen-kachel-text {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+.themen-kachel-zaehler {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--color-orange);
+  color: var(--text-on-accent);
+}
+.themen-kachel.is-disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.themen-kachel.is-warn .themen-kachel-icon {
+  color: var(--color-orange);
+}
+.themen-panel-zahlen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-2-2);
+  margin-bottom: var(--size-2-3);
+}
+.themen-panel-zahl {
+  text-align: center;
+  padding: var(--size-2-2);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+.themen-panel-zahl-wert {
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-semibold);
+}
+.themen-panel-zahl-label,
+.themen-panel-label,
+.themen-panel-leer {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+.themen-panel-leer {
+  margin-top: var(--size-2-2);
+}
+.themen-panel-info .themen-panel-zeile {
+  display: flex;
+  gap: var(--size-4-2);
+  padding: 1px 0;
+}
+.themen-panel-info .themen-panel-label {
+  min-width: 5em;
+}
+.themen-panel-zeile.themen-warn {
+  color: var(--color-orange);
+}
+/* einklappbare Abschnitte */
+.themen-panel-abschnitt {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  margin-top: var(--size-4-3);
+  padding: var(--size-2-2) 0;
+  border-top: 1px solid var(--background-modifier-border);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.themen-panel-pfeil {
+  display: flex;
+}
+.themen-panel-pfeil svg {
+  width: 14px;
+  height: 14px;
+}
+.themen-panel-box {
+  padding: var(--size-2-2) 0;
+}
+.themen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2-2);
+  margin-top: var(--size-2-2);
+}
+.themen-chip {
+  font-size: var(--font-ui-smaller);
+  padding: var(--size-2-1) var(--size-4-2);
+  border-radius: var(--radius-l);
+  height: auto;
+  box-shadow: none;
+}
+.themen-chip.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.themen-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-1);
+}
+.themen-chip-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.themen-toggle-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2-2);
+}
+.themen-toggle {
+  padding: var(--size-2-3);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  opacity: 0.55;
+}
+.themen-toggle.is-active {
+  opacity: 1;
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+.themen-zeile-steuer {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-2);
+}
+.themen-zeile-steuer .themen-panel-label {
+  min-width: 6em;
+}
+.themen-zeile-steuer input[type="range"] {
+  flex: 1;
+}
+.themen-segment {
+  display: inline-flex;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+}
+.themen-segment button {
+  border-radius: 0;
+  box-shadow: none;
+  height: auto;
+  padding: var(--size-2-1) var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  background: transparent;
+}
+.themen-segment button.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+/* Themenfarben */
+.themen-farbzeile {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: 2px 0;
+}
+.themen-farbzeile input[type="color"] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.themen-farbzeile input[type="color"].is-standard {
+  opacity: 0.45;
+}
+.themen-farbzeile-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.themen-zurueck {
+  padding: 2px;
+}
+.themen-panel-link {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-3);
+  padding: var(--size-2-1) var(--size-2-2);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.themen-panel-link:hover {
+  background: var(--background-modifier-hover);
+}
+.themen-panel-link .themen-panel-label {
+  margin-left: auto;
+}
+
+/* ---------- 7. Themenköpfe: farbig und größer ---------- */
+.bases-group-heading.themen-gruppe {
+  --themen-g: var(--themen-gruppe, var(--themen-gruppe-standard, var(--interactive-accent)));
+  border-left: 4px solid var(--themen-g);
+  background: color-mix(in srgb, var(--themen-g) 14%, transparent) !important;
+  border-radius: var(--radius-s);
+  padding-inline-start: var(--size-4-2) !important;
+  padding-block: 0 !important;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+.bases-group-heading.themen-gruppe .bases-group-value {
+  font-size: calc(var(--font-ui-medium) * var(--themen-gruppen-groesse, 1.25));
+  line-height: 1.15;
+  font-weight: var(--font-bold);
+  color: var(--text-normal);
+}
+.bases-group-heading.themen-gruppe .bases-group-property {
+  display: none;
+}
+/* die Zeilen einer Gruppe bekommen einen feinen Farbstreifen */
+.themen-gruppe-tabelle .bases-tbody {
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--themen-gruppe, var(--themen-gruppe-standard, var(--interactive-accent))) 45%, transparent);
+}
+/* Farbdialog */
+.themen-farben {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  margin-bottom: var(--size-4-3);
+}
+.themen-farbe {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--themen-farbe);
+  box-shadow: none;
+}
+.themen-farbe.is-active {
+  outline: 2px solid var(--text-normal);
+  outline-offset: 2px;
+}
+
+/* ---------- 8. Tabellen ohne Seitenscroll ---------- */
+/* Zellen der Themen-Base dürfen umbrechen (die Zeilenhöhe kommt aus der Base: medium/tall) */
+.bases-embed.themen-base .bases-td {
+  white-space: normal;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+.bases-embed.themen-base .bases-td :is(.multi-select-container, .value-list-container) {
+  flex-wrap: wrap;
+}
+.bases-embed.themen-base .bases-table-container {
+  overflow-x: hidden;
+}
+/* Volle Breite: Einbettung über die Lesebreite hinaus */
+body.themen-breit .themen-hub .bases-embed.themen-base {
+  width: min(1120px, calc(100vw - 120px));
+  max-width: none;
+  margin-inline-start: calc((var(--file-line-width) - min(1120px, calc(100vw - 120px))) / 2);
+}

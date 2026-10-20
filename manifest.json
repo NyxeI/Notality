@@ -1,0 +1,10 @@
+{
+	"id": "themen-notes",
+	"name": "Themen-Notes",
+	"version": "0.1.0",
+	"minAppVersion": "1.9.0",
+	"description": "Topic notes per subject: a quick dialog files new notes into subject/topic folders, keeps properties and tags in sync, and adds Bases overviews to subject hubs.",
+	"author": "Nyxel",
+	"authorUrl": "https://github.com/schildi208-lgtm",
+	"isDesktopOnly": false
+}
