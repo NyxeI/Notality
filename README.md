@@ -1,4 +1,4 @@
-# Themen-Notes
+# Notality
 
 An [Obsidian](https://obsidian.md) plugin for **topic notes per subject** in a vault that is organised by folders. It keeps your existing structure and adds what is tedious by hand:
 
@@ -11,7 +11,7 @@ An [Obsidian](https://obsidian.md) plugin for **topic notes per subject** in a v
 - inline `#tags` you type are **copied into the `tags` property** automatically,
 - one [Bases](https://help.obsidian.md/bases) file with sortable views that is embedded at the top of every **subject hub**.
 
-It is the sibling of [Schul-Tagesnotes](https://github.com/schildi208-lgtm/obsidian-schul-tagesnotes), which uses one dated note per lesson instead. Themen-Notes needs no migration: notes stay where they are.
+It is the sibling of [Schul-Tagesnotes](https://github.com/NyxeI/obsidian-schul-tagesnotes), which uses one dated note per lesson instead. Notality needs no migration: notes stay where they are.
 
 > The plugin's interface is in **German** and the defaults fit a German school vault (`01-Schule/<Fach>/…`). Folders, subjects and the base path can be changed in the settings. Command names below are given in German with a translation.
 
@@ -43,13 +43,13 @@ It is the sibling of [Schul-Tagesnotes](https://github.com/schildi208-lgtm/obsid
 The plugin is not in the community catalogue. Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat):
 
 1. Install and enable *BRAT* from the community plugins.
-2. Run *BRAT: Add a beta plugin for testing* and enter `schildi208-lgtm/obsidian-themen-notes`.
-3. Enable *Themen-Notes* under *Settings → Community plugins*.
+2. Run *BRAT: Add a beta plugin for testing* and enter `NyxeI/Notality`.
+3. Enable *Notality* under *Settings → Community plugins*.
 
 ## Quick start
 
-1. Check *Settings → Themen-Notes*: area folder (`01-Schule`), subjects whose hub is not `<Folder>/<Folder>.md`, ignored folders.
-2. Assign hotkeys under *Settings → Hotkeys* (search "Themen-Notes"), e.g.
+1. Check *Settings → Notality*: area folder (`01-Schule`), subjects whose hub is not `<Folder>/<Folder>.md`, ignored folders.
+2. Assign hotkeys under *Settings → Hotkeys* (search "Notality"), e.g.
    - `Ctrl+Alt+N`: **Neue Themennote …** (new topic note),
    - `Ctrl+Alt+Shift+N`: **Neue Themennote im Fach der aktuellen Note …** (in the current note's subject).
 3. Run **Fach-Hubs einrichten** (set up subject hubs) to embed the overview into every hub. Your link lists stay below it.

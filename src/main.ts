@@ -289,7 +289,7 @@ export default class ThemenNotesPlugin extends Plugin {
 
   waehleFach(): void {
     const wahl = this.fachWahlen();
-    if (!wahl.length) return void new Notice("Themen-Notes: keine Fächer gefunden – Bereichsordner in den Einstellungen prüfen.");
+    if (!wahl.length) return void new Notice("Notality: keine Fächer gefunden – Bereichsordner in den Einstellungen prüfen.");
     new FachModal(this.app, wahl, (w) => this.waehleThema(w.bereich, w.fach)).open();
   }
 

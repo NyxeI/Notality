@@ -29,5 +29,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${GITHUB_REF_NAME}" main.js manifest.json styles.css \
-            --title "${GITHUB_REF_NAME}" \
+            --title "v${GITHUB_REF_NAME}" \
             --notes "See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/CHANGELOG.md)."

@@ -12,7 +12,7 @@ npm run build   # type check + production bundle
 Link the repository into a test vault and enable the plugin:
 
 ```bash
-ln -s /path/to/obsidian-themen-notes <vault>/.obsidian/plugins/themen-notes
+ln -s /path/to/Notality <vault>/.obsidian/plugins/notality
 ```
 
 Use a **copy** of your vault for testing, never the real one. Remove any git remote and disable sync plugins in the copy.
@@ -28,9 +28,9 @@ Use a **copy** of your vault for testing, never the real one. Remove any git rem
 With the [Obsidian CLI](https://help.obsidian.md/cli):
 
 ```bash
-obsidian vault=<Vault> plugin:reload id=themen-notes
+obsidian vault=<Vault> plugin:reload id=notality
 obsidian vault=<Vault> dev:errors
-obsidian vault=<Vault> eval code='app.plugins.plugins["themen-notes"].hubPlan().then(m => console.log(m.size))'
+obsidian vault=<Vault> eval code='app.plugins.plugins["notality"].hubPlan().then(m => console.log(m.size))'
 ```
 
 - `eval` gives up after about 3 seconds: start async work, store the result on `window`, read it with a second call.

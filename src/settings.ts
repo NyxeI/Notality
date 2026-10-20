@@ -91,7 +91,7 @@ export class ThemenSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("Tastenkürzel").setHeading();
     new Setting(containerEl)
       .setName("Vorschlag")
-      .setDesc("Strg+Alt+N: Neue Themennote · Strg+Alt+Shift+N: im Fach der aktuellen Note. Vergeben unter Einstellungen → Tastenkürzel, Suche „Themen-Notes“.");
+      .setDesc("Strg+Alt+N: Neue Themennote · Strg+Alt+Shift+N: im Fach der aktuellen Note. Vergeben unter Einstellungen → Tastenkürzel, Suche „Notality“.");
   }
 
   private bereich(el: HTMLElement, b: Bereich, save: () => Promise<void>): void {

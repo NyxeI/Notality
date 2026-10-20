@@ -63,7 +63,7 @@ export class Sync {
         this.timers.delete(file.path);
         const g = this.gruende.get(file.path) ?? new Set([grund]);
         this.gruende.delete(file.path);
-        void this.pruefe(file, g).catch((e) => new Notice(`Themen-Notes: ${(e as Error).message}`));
+        void this.pruefe(file, g).catch((e) => new Notice(`Notality: ${(e as Error).message}`));
       }, WARTEN_MS),
     );
   }

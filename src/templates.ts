@@ -44,7 +44,7 @@ ${sort}`;
     view(aAbi, ["file.name", "thema", "file.tags"], sortiere(["thema", "ASC"], ["file.name", "ASC"]), `        - file.hasTag("${abiTag}")\n`),
     view(aOhne, ["file.name", "file.folder", "file.mtime"], sortiere(["file.mtime", "DESC"]), `        - not:\n            - file.hasProperty("typ")\n`),
   ];
-  return `# Themen-Notes: eine Base für alle Fach-Hubs (eingebettet mit ![[Fach.base#Nach Thema]]).
+  return `# Notality: eine Base für alle Fach-Hubs (eingebettet mit ![[Themen.base#Nach Thema]]).
 # Zeigt alle Notes im Ordner des Hubs. Ansicht über das Dropdown oder das Themen-Panel wechseln.
 properties:
   file.name:

@@ -3,7 +3,7 @@ import { bodyClasses, knopfSichtbar, nachbarn, type AnzeigeSchalter, type Anzeig
 import type ThemenNotesPlugin from "./main";
 import { setzeSpalten, setzeTabellen, tabellenBreite, type BaseDatei } from "./spalten.ts";
 
-export const ANZEIGE_EVENT = "themen-notes:anzeige";
+export const ANZEIGE_EVENT = "notality:anzeige";
 
 export type NoteArt = "hub" | "note" | null;
 

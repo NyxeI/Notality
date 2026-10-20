@@ -9,8 +9,8 @@ import { tagList } from "./tags.ts";
 import { ANSICHTEN } from "./templates.ts";
 import { kurzZeit, parseStempel } from "./zeit.ts";
 
-export const PANEL_VIEW = "themen-notes-panel";
-const OFFEN_KEY = "themen-notes-panel-offen";
+export const PANEL_VIEW = "notality-panel";
+const OFFEN_KEY = "notality-panel-offen";
 
 /**
  * Steuer-Panel für die Seitenleiste: folgt der zuletzt aktiven Markdown-Note.
