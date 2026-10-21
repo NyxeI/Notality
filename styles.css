@@ -151,18 +151,14 @@ body.themen-props-aus .themen-note {
 }
 
 /* ---------- 4. Menüleiste in Notes ---------- */
-/* Leiste fest oben: der Inhaltsbereich wird zur Flex-Spalte, damit er nicht um die Höhe der Leiste überläuft */
-.workspace-leaf-content:is(.themen-hub, .themen-note) > .view-content:has(> .themen-notebar) {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.workspace-leaf-content:is(.themen-hub, .themen-note) > .view-content:has(> .themen-notebar) > :not(.themen-notebar) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
+/* Leiste zwischen Kopf und Inhalt (die Leaf ist schon eine Flex-Spalte); der Inhalt gibt die Höhe der Leiste ab.
+   Bewusst ohne :has() – das hat jeden Tastendruck im Editor um ~20 ms verteuert. */
 .themen-notebar {
   flex: 0 0 auto;
+}
+.workspace-leaf-content > .themen-notebar + .view-content {
+  flex: 1 1 0;
+  min-height: 0;
 }
 .themen-notebar {
   display: flex;

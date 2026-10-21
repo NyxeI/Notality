@@ -77,12 +77,16 @@ export class Anzeige {
     const art = this.plugin.art(view.file);
     view.containerEl.toggleClass("themen-hub", art === "hub");
     view.containerEl.toggleClass("themen-note", art === "note");
-    const alt = view.contentEl.querySelector<HTMLElement>(":scope > .themen-notebar");
+    const alt = leisteVon(view);
     const neu = art && view.file && this.plugin.settings.anzeige.menueleiste ? this.notebar(view.file, art) : null;
     // Unveränderte Leiste stehen lassen: Austauschen lässt Obsidian den ganzen Editor neu stylen und layouten (~30 ms)
     if (alt && neu && alt.outerHTML === neu.outerHTML) return;
     alt?.remove();
-    if (neu) view.contentEl.prepend(neu);
+    if (!neu) return;
+    // Zwischen Kopf und Inhalt, nicht in .view-content: dort bräuchte das Layout :has(), und das verteuert jeden Tastendruck (~20 ms)
+    const kopf = view.containerEl.querySelector(":scope > .view-header");
+    if (kopf) kopf.after(neu);
+    else view.containerEl.prepend(neu);
   }
 
   clear(): void {
@@ -92,7 +96,7 @@ export class Anzeige {
     for (const leaf of this.plugin.app.workspace.getLeavesOfType("markdown")) {
       if (!(leaf.view instanceof MarkdownView)) continue;
       leaf.view.containerEl.removeClass("themen-hub", "themen-note");
-      leaf.view.contentEl.querySelector(":scope > .themen-notebar")?.remove();
+      leisteVon(leaf.view)?.remove();
     }
   }
 
@@ -151,6 +155,10 @@ export async function bearbeiteBase(p: ThemenNotesPlugin, pfad: string, aendern:
     return kopf + stringifyYaml(base);
   });
   return true;
+}
+
+function leisteVon(view: MarkdownView): HTMLElement | null {
+  return view.containerEl.querySelector<HTMLElement>(":scope > .themen-notebar");
 }
 
 function knopf(parent: HTMLElement, icon: string, label: string, fn: () => void, mitText = false): HTMLElement {
