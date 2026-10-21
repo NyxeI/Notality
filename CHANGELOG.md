@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Fixed remaining stutter while typing: the note bar now sits between the tab header and the content, so the stylesheet no longer needs `:has()`, which made every keystroke noticeably slower.
+
 ## 0.1.3
 
 - Fixed stutter: the note bar is only rebuilt when its content changes, instead of on every layout change, file open and edit.
