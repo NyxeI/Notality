@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- New command **Navigate: open subject, topic or note …** (and ribbon icon): pick a subject, then `Enter` goes into its topics and subtopics, `Shift+Enter` opens the hub or a topic's folder note; `Enter` on a note opens it. `Backspace` in the empty field goes back, `Ctrl+Enter` opens in a new tab, and typing finds subtopics and notes further down.
+
 ## 0.1.4
 
 - Fixed remaining stutter while typing: the note bar now sits between the tab header and the content, so the stylesheet no longer needs `:has()`, which made every keystroke noticeably slower.
