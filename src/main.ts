@@ -6,7 +6,8 @@ import { DEFAULT_SETTINGS, basisPfad, mergeSettings, stufenRegex, type ThemenSet
 import { alleSprachen, setzeSprache, t, type TextKey } from "./i18n.ts";
 import { Gruppen } from "./gruppen.ts";
 import { aktuelleAnsicht, planHub, setzeAnsicht } from "./hubs.ts";
-import { ConfirmModal, FachModal, ThemaModal, TitelModal, type FachWahl, type ThemaChoice } from "./modals.ts";
+import { ConfirmModal, FachModal, NavModal, ThemaModal, TitelModal, type FachWahl, type ThemaChoice } from "./modals.ts";
+import { navInhalt } from "./navigation.ts";
 import { nachruestBericht, planNachruesten, type NachruestPlan } from "./nachruesten.ts";
 import { PANEL_VIEW, ThemenPanel } from "./panel.ts";
 import { einordnen, faecherIn, themenVon, type Einordnung, type Struktur, type ThemaInfo } from "./pfad.ts";
@@ -33,6 +34,7 @@ export default class ThemenNotesPlugin extends Plugin {
     this.registerView(PANEL_VIEW, (leaf) => new ThemenPanel(leaf, this));
     this.addRibbonIcon("file-plus-2", t("ribbon.neu"), () => this.waehleFach());
     this.addRibbonIcon("sliders-horizontal", t("ribbon.panel"), () => void this.openPanel());
+    this.addRibbonIcon("compass", t("ribbon.navigieren"), () => this.navigiere());
 
     // ---------- Neue Notes ----------
     this.addCommand({ id: "neue-themennote", name: t("cmd.neu"), callback: () => this.waehleFach() });
@@ -57,6 +59,9 @@ export default class ThemenNotesPlugin extends Plugin {
         return true;
       },
     });
+
+    // ---------- Navigieren ----------
+    this.addCommand({ id: "navigieren", name: t("cmd.navigieren"), callback: () => this.navigiere() });
 
     // ---------- Anzeige ----------
     this.addCommand({ id: "panel-oeffnen", name: t("cmd.panel"), callback: () => void this.openPanel() });
@@ -316,6 +321,28 @@ export default class ThemenNotesPlugin extends Plugin {
       },
       vorne,
     ).open();
+  }
+
+  // ---------- Navigieren: Fach → Thema → Note ----------
+
+  navigiere(): void {
+    const wahl = this.fachWahlen();
+    if (!wahl.length) {
+      new Notice(t("n.keineFaecher"), 8000);
+      this.oeffneEinstellungen();
+      return;
+    }
+    new NavModal(this.app, wahl, {
+      inhalt: (w, rel) => {
+        const notes = this.app.vault.getMarkdownFiles().map((f) => ({ path: f.path, mtime: f.stat.mtime }));
+        return navInhalt(this.fachOrdner(w.bereich, w.fach), rel, this.themen(w.bereich, w.fach), notes, this.settings.ignoriert, w.fach.hub);
+      },
+      hubPfad: (w) => this.hubDatei(w.bereich, w.fach)?.path ?? null,
+      oeffne: (path, neuerTab) => {
+        const f = this.app.vault.getAbstractFileByPath(path);
+        if (f instanceof TFile) void this.app.workspace.getLeaf(neuerTab ? "tab" : false).openFile(f);
+      },
+    }).open();
   }
 
   /** Titel für eine neue Note in `<Fach>/<pfad>` (null = direkt im Fach). */

@@ -18,6 +18,7 @@ It is the sibling of [Schul-Tagesnotes](https://github.com/NyxeI/obsidian-schul-
 ## Features
 
 - **New note in three steps.** Pick a subject (recently used first, with note count), a topic folder (recently used first, nested topics shown as paths) and type a title. A title that already exists in that folder opens the existing note. Typing a new topic creates its folder; `Dramen/Faust` creates a subtopic.
+- **Navigate the vault.** The same dialog takes you to a subject hub, a topic or a note: `Enter` goes one level deeper (or opens a note); `Shift+Enter` opens the hub, the topic's folder note (`A Auge/A Auge.md`) or the note; `Backspace` in the empty field goes back. Typing also finds subtopics and notes further down.
 - **Properties from the folder.** Every note gets:
 
   | Property | Value |
@@ -61,6 +62,7 @@ The plugin is not in the community catalogue. Install it with [BRAT](https://git
 | New topic note … / Neue Themennote … | Dialog subject → topic → title |
 | … in the current note's subject / … im Fach der aktuellen Note | Skips the subject step; the current topic is on top |
 | … in the current note's topic / … im Thema der aktuellen Note | Straight to the title |
+| Navigate: open subject, topic or note … / Navigieren: Fach, Thema oder Note öffnen … | Dialog subject → topic → subtopic → note; opens hubs, folder notes and notes |
 | Sync properties of the current note now / Properties der aktuellen Note jetzt abgleichen | Sync the active note now |
 | Add properties to all existing notes / Properties für alle vorhandenen Notes nachrüsten | Add properties to all notes (with confirmation) |
 | Create/update base file / Base-Datei anlegen/aktualisieren | Create or update `Themen.base` (keeps columns chosen in the panel and the base's language) |

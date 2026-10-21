@@ -16,6 +16,7 @@ Pure modules contain all decisions and are tested with `node --test`; Obsidian-b
 | `bases.ts` | `baseUpdate`: compare target and current base, keep panel edits |
 | `hubs.ts` | Embed planning, view switching in hubs |
 | `nachruesten.ts` | Plan and dry-run report for existing notes |
+| `navigation.ts` | Navigator: topics and notes of one level, deeper entries, search order |
 | `ansicht.ts` | Display settings, topic colours, previous/next in folder |
 | `defaults.ts` | Settings, defaults, `mergeSettings`, `basisPfad` |
 | `i18n.ts` | German and English texts, `t()`, language from Obsidian (`getLanguage()`) |
@@ -26,7 +27,7 @@ Pure modules contain all decisions and are tested with `node --test`; Obsidian-b
 |---|---|
 | `main.ts` | Plugin: commands, events, structure cache, note creation, bulk actions |
 | `sync.ts` | Debounced sync after edits/renames with loop protection |
-| `modals.ts` | Subject, topic and title dialogs; confirmation dialog |
+| `modals.ts` | Subject, topic and title dialogs; navigator (`NavModal`); confirmation dialog |
 | `anzeige.ts` | Body classes, toolbar, base editing helper |
 | `gruppen.ts` | Marks embeds of the base (`.themen-base`) and colours topic group headings |
 | `panel.ts` | Side panel |

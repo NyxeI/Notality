@@ -29,6 +29,8 @@ const DE = {
   "cmd.hubs": "Fach-Hubs einrichten (Base-Übersicht einbetten) …",
   "ribbon.neu": "Neue Themennote",
   "ribbon.panel": "Themen-Panel",
+  "cmd.navigieren": "Navigieren: Fach, Thema oder Note öffnen …",
+  "ribbon.navigieren": "Navigieren",
 
   // Hinweise
   "n.keineFaecher": "Notality: Kein Ordner für Fächer festgelegt oder keine Fächer gefunden – bitte in den Einstellungen den Ordner wählen.",
@@ -74,6 +76,15 @@ const DE = {
   "m.neu": "neu",
   "m.geaendert": "geändert {wann}",
   "m.oeffnen": "öffnen",
+  "m.nav.platzhalter": "Navigieren – Fach wählen …",
+  "m.nav.platzhalterIn": "In {ort} – Thema oder Note suchen …",
+  "m.nav.hubOeffnen": "Hub öffnen",
+  "m.nav.oeffnen": "öffnen",
+  "m.nav.tiefer": "tiefer",
+  "m.nav.neuerTab": "neuer Tab",
+  "m.nav.zurueck": "zurück",
+  "m.nav.keinHub": "kein Hub",
+  "m.nav.mitNote": "Ordner-Note",
 
   // Anzeige-Schalter
   "s.kompakt": "Kompakte Base-Ansichten",
@@ -250,6 +261,8 @@ const EN: Record<TextKey, string> = {
   "cmd.hubs": "Set up subject hubs (embed base overview) …",
   "ribbon.neu": "New topic note",
   "ribbon.panel": "Topic panel",
+  "cmd.navigieren": "Navigate: open subject, topic or note …",
+  "ribbon.navigieren": "Navigate",
 
   "n.keineFaecher": "Notality: no subject folder set or no subjects found – please choose the folder in the settings.",
   "n.gibtEsSchon": "This note already exists – opened.",
@@ -292,6 +305,15 @@ const EN: Record<TextKey, string> = {
   "m.neu": "new",
   "m.geaendert": "edited {wann}",
   "m.oeffnen": "open",
+  "m.nav.platzhalter": "Navigate – choose a subject …",
+  "m.nav.platzhalterIn": "In {ort} – search topics or notes …",
+  "m.nav.hubOeffnen": "open hub",
+  "m.nav.oeffnen": "open",
+  "m.nav.tiefer": "go deeper",
+  "m.nav.neuerTab": "new tab",
+  "m.nav.zurueck": "back",
+  "m.nav.keinHub": "no hub",
+  "m.nav.mitNote": "folder note",
 
   "s.kompakt": "Compact base views",
   "s.kompakt.desc": "Hide toolbar and frame of the topic base (sort/filter appear on hover).",

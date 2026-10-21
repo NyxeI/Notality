@@ -1,5 +1,7 @@
 import { App, Modal, Setting, SuggestModal, TFile, setIcon } from "obsidian";
 import { dateiName, themenPfad, type Bereich, type Fach } from "./config.ts";
+import type { NavEintrag, NavInhalt } from "./navigation.ts";
+import { navSuche } from "./navigation.ts";
 import type { ThemaInfo } from "./pfad.ts";
 import { t } from "./i18n.ts";
 import { kurzZeit } from "./zeit.ts";
@@ -31,8 +33,10 @@ function renderRow(el: HTMLElement, icon: string, title: string, sub: string, as
   if (aside) el.createDiv({ cls: "themen-suggestion-aside", text: aside });
 }
 
-/** Kopfzeile über der Eingabe: bisherige Auswahl (Fach › Thema). */
+/** Kopfzeile über der Eingabe: bisherige Auswahl (Fach › Thema); ersetzt eine vorhandene, leer = keine. */
 function brotkrumen(modal: SuggestModal<unknown>, teile: string[]): void {
+  modal.modalEl.querySelector(":scope > .themen-brotkrumen")?.remove();
+  if (!teile.length) return;
   const bar = createDiv({ cls: "themen-brotkrumen" });
   teile.forEach((t, i) => {
     if (i) setIcon(bar.createSpan({ cls: "themen-brotkrumen-pfeil" }), "chevron-right");
@@ -177,6 +181,133 @@ export class TitelModal extends SuggestModal<TitelChoice> {
   onChooseSuggestion(choice: TitelChoice): void {
     this.onPick(choice);
   }
+}
+
+export type NavItem = { kind: "fach"; wahl: FachWahl } | NavEintrag;
+
+/** Was der Navigator vom Plugin braucht. */
+export interface NavQuelle {
+  inhalt(wahl: FachWahl, rel: string): NavInhalt;
+  hubPfad(wahl: FachWahl): string | null;
+  oeffne(path: string, neuerTab: boolean): void;
+}
+
+/** Interner Teil von SuggestModal: die aktuell markierte Zeile. */
+type MitChooser = { chooser: { values: unknown[] | null; selectedItem: number } };
+
+/**
+ * Navigieren: Fach → Thema → Unterthema → Note. ↵ geht tiefer (Note: öffnen), Shift+↵ öffnet (Hub, Ordner-Note, Note),
+ * Strg+↵ öffnet in neuem Tab, Rücktaste im leeren Feld geht zurück. Ein Dialog, die Ebene wechselt darin.
+ */
+export class NavModal extends SuggestModal<NavItem> {
+  private faecher: FachWahl[];
+  private quelle: NavQuelle;
+  private mehrereBereiche: boolean;
+  /** null = Fachauswahl; sonst Fach und Ordner relativ zum Fach ("" = Fachordner). */
+  private stand: { wahl: FachWahl; rel: string; inhalt: NavInhalt } | null = null;
+
+  constructor(app: App, faecher: FachWahl[], quelle: NavQuelle) {
+    super(app);
+    this.faecher = faecher;
+    this.quelle = quelle;
+    this.mehrereBereiche = new Set(faecher.map((i) => i.bereich.id)).size > 1;
+    this.modalEl.addClass("themen-modal");
+    this.limit = 100;
+    this.scope.register(["Shift"], "Enter", () => (this.markiert() && this.waehle(this.markiert()!, false), false));
+    this.scope.register(["Mod"], "Enter", () => (this.markiert() && this.waehle(this.markiert()!, true), false));
+    this.scope.register([], "Backspace", () => {
+      if (this.inputEl.value !== "" || !this.stand) return true;
+      this.zurueck();
+      return false;
+    });
+    this.zeigeEbene();
+  }
+
+  private markiert(): NavItem | null {
+    const c = (this as unknown as MitChooser).chooser;
+    return (c?.values?.[c.selectedItem] as NavItem | undefined) ?? null;
+  }
+
+  private zeigeEbene(): void {
+    const s = this.stand;
+    brotkrumen(this as SuggestModal<unknown>, s ? [s.wahl.fach.name, ...(s.rel ? s.rel.split("/") : [])] : []);
+    this.setPlaceholder(s ? t("m.nav.platzhalterIn", { ort: s.rel ? s.rel.split("/").pop()! : s.wahl.fach.name }) : t("m.nav.platzhalter"));
+    this.setInstructions([
+      { command: "↵", purpose: t("m.nav.tiefer") },
+      { command: "⇧ ↵", purpose: s ? t("m.nav.oeffnen") : t("m.nav.hubOeffnen") },
+      { command: "ctrl ↵", purpose: t("m.nav.neuerTab") },
+      ...(s ? [{ command: "⌫", purpose: t("m.nav.zurueck") }] : []),
+      { command: "esc", purpose: t("abbrechen") },
+    ]);
+    this.inputEl.value = "";
+    // Vor dem Öffnen füllt SuggestModal die Liste selbst
+    if (this.modalEl.isConnected) this.inputEl.dispatchEvent(new Event("input"));
+  }
+
+  private gehe(wahl: FachWahl, rel: string): void {
+    this.stand = { wahl, rel, inhalt: this.quelle.inhalt(wahl, rel) };
+    this.zeigeEbene();
+  }
+
+  private zurueck(): void {
+    const s = this.stand!;
+    if (s.rel) this.gehe(s.wahl, s.rel.split("/").slice(0, -1).join("/"));
+    else {
+      this.stand = null;
+      this.zeigeEbene();
+    }
+  }
+
+  private tiefer(item: NavItem): void {
+    if (item.kind === "fach") this.gehe(item.wahl, "");
+    else if (item.kind === "thema") this.gehe(this.stand!.wahl, item.pfad);
+    else this.oeffne(item.path, false);
+  }
+
+  /** Shift+↵: öffnen, was die Zeile vertritt; ohne Hub bzw. Ordner-Note geht es stattdessen tiefer. */
+  private waehle(item: NavItem, neuerTab: boolean): void {
+    const ziel = item.kind === "fach" ? this.quelle.hubPfad(item.wahl) : item.kind === "thema" ? item.ordnerNote : item.path;
+    if (ziel) this.oeffne(ziel, neuerTab);
+    else this.tiefer(item);
+  }
+
+  private oeffne(path: string, neuerTab: boolean): void {
+    this.close();
+    this.quelle.oeffne(path, neuerTab);
+  }
+
+  getSuggestions(query: string): NavItem[] {
+    if (this.stand) return navSuche(this.stand.inhalt, query);
+    const q = query.trim().toLowerCase();
+    const items = this.faecher.map((wahl): NavItem => ({ kind: "fach", wahl }));
+    if (!q) return items;
+    const name = (i: NavItem) => (i.kind === "fach" ? i.wahl.fach.name.toLowerCase() : "");
+    const hits = items.filter((i) => i.kind === "fach" && (name(i).includes(q) || i.wahl.fach.folder.toLowerCase().includes(q)));
+    return hits.sort((a, b) => Number(!name(a).startsWith(q)) - Number(!name(b).startsWith(q)));
+  }
+
+  renderSuggestion(item: NavItem, el: HTMLElement): void {
+    if (item.kind === "fach") {
+      const w = item.wahl;
+      const badge = !w.fach.hub ? t("m.nav.keinHub") : this.mehrereBereiche ? w.bereich.name : "";
+      return renderRow(el, bereichIcon(w.bereich), w.fach.name, w.anzahl ? notes(w.anzahl) : t("m.keineNotes"), w.zuletzt ? zuletzt(w.zuletzt) : "", badge);
+    }
+    const ort = item.ort ? t("m.in", { pfad: item.ort.split("/").join(" › ") }) : "";
+    if (item.kind === "thema") {
+      const sub = [ort, item.anzahl ? notes(item.anzahl) : t("m.leer")].filter(Boolean).join(" · ");
+      return renderRow(el, item.ordnerNote ? "folder-open" : "folder", item.name, sub, item.zuletzt ? zuletzt(item.zuletzt) : "", item.ordnerNote ? t("m.nav.mitNote") : "");
+    }
+    renderRow(el, "file-text", item.name, ort, t("m.geaendert", { wann: kurzZeit(item.mtime) }));
+  }
+
+  /** ↵ bzw. Klick geht tiefer, mit Shift/Strg wird geöffnet; der Dialog schließt sich nur beim Öffnen. */
+  selectSuggestion(item: NavItem, evt: MouseEvent | KeyboardEvent): void {
+    const neuerTab = evt.ctrlKey || evt.metaKey;
+    if (evt.shiftKey || neuerTab) this.waehle(item, neuerTab);
+    else this.tiefer(item);
+  }
+
+  onChooseSuggestion(): void {}
 }
 
 /** Bestätigung vor Massenänderungen; `text` darf mehrere Absätze haben. */

@@ -52,6 +52,23 @@ The sync runs about a second after Obsidian has re-read a changed note.
 - **Template** (*Vorlage*): optional note path. Placeholders `{{titel}}`/`{{title}}`, `{{fach}}`, `{{thema}}`, `{{datum}}`/`{{date}}` (date format of the core Templates plugin). Frontmatter in the template is kept; its tags are merged.
 - **Banner**: with *Banner für neue Notes* on, the note gets the banner of the closest folder note (`Topic/Topic.md`) or of the subject hub.
 
+## Navigating
+
+**Navigate: open subject, topic or note …** (no default hotkey; assign one under *Settings → Hotkeys*) uses the same dialog to move through the vault.
+
+- **Levels:** subjects (recently used first) → topics and the notes directly in the subject folder → subtopics and notes in the topic, and so on. Topics come first (recently used first), then notes (newest first). The hub and a topic's folder note (`Topic/Topic.md`) stand for their level and are not listed as notes.
+- **Keys:**
+
+  | Key | Subject | Topic | Note |
+  |---|---|---|---|
+  | `Enter` | go deeper | go deeper | open |
+  | `Shift+Enter` | open the hub (no hub: go deeper) | open the folder note (none: go deeper) | open |
+  | `Ctrl+Enter` | like `Shift+Enter`, in a new tab | like `Shift+Enter`, in a new tab | open in a new tab |
+  | `Backspace` (empty field) | – | back one level | back one level |
+
+- **Search:** typing filters the current level first; matches further down (subtopics and notes) follow, with their folder as a subtitle.
+- Ignored folders are skipped; grade folders (`11`, `12-1`) appear like topics. Notes open in the current tab in their usual mode.
+
 ## The base
 
 `Themen.base` (default: next to your subject folders; path in the settings) has a per-view filter `file.inFolder(this.file.folder)`. Embedded in a hub it shows every note in the hub's folder and below, without the hub itself. Opened directly, it shows everything below the base's own folder.
