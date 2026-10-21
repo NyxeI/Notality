@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Arrow keys in the dialogs: `←` goes back (navigator levels; new note: title → topic → subject), `→` works like `Enter`, `Shift+→` like `Shift+Enter` in the navigator. With text in the field the arrows move the cursor until it is at the start or end. `Backspace` in the empty field also goes back in the new-note dialog.
+
 ## 0.2.0
 
 - New command **Navigate: open subject, topic or note …** (and ribbon icon): pick a subject, then `Enter` goes into its topics and subtopics, `Shift+Enter` opens the hub or a topic's folder note; `Enter` on a note opens it. `Backspace` in the empty field goes back, `Ctrl+Enter` opens in a new tab, and typing finds subtopics and notes further down.
