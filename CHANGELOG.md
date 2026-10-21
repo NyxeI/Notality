@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Fixed stutter: the note bar is only rebuilt when its content changes, instead of on every layout change, file open and edit.
+
 ## 0.1.2
 
 - Interface in English and German, following Obsidian's language. Property names stay the same.
