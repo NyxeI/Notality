@@ -1,7 +1,7 @@
 import { App, Modal, Setting, SuggestModal, TFile, setIcon } from "obsidian";
 import { dateiName, themenPfad, type Bereich, type Fach } from "./config.ts";
 import type { NavEintrag, NavInhalt } from "./navigation.ts";
-import { navSuche } from "./navigation.ts";
+import { amRand, navSuche } from "./navigation.ts";
 import type { ThemaInfo } from "./pfad.ts";
 import { t } from "./i18n.ts";
 import { kurzZeit } from "./zeit.ts";
@@ -45,6 +45,38 @@ function brotkrumen(modal: SuggestModal<unknown>, teile: string[]): void {
   modal.modalEl.prepend(bar);
 }
 
+/** Interner Teil von SuggestModal: markierte Zeile und Enter. */
+type MitChooser = { chooser?: { values: unknown[] | null; selectedItem: number; useSelectedItem(evt: KeyboardEvent): boolean } };
+
+function markiert<T>(modal: SuggestModal<T>): T | null {
+  const c = (modal as unknown as MitChooser).chooser;
+  return (c?.values?.[c.selectedItem] as T | undefined) ?? null;
+}
+
+/** Wie Enter: die markierte Zeile wählen. */
+function wieEnter(modal: SuggestModal<unknown>, evt: KeyboardEvent): void {
+  (modal as unknown as MitChooser).chooser?.useSelectedItem(evt);
+}
+
+/**
+ * Pfeiltasten: ← (Cursor am Textanfang) und ⌫ (leeres Feld) gehen zurück, → (Cursor am Textende) wirkt wie Enter,
+ * Shift+→ öffnet. Mitten im Text bewegen die Pfeile weiter den Cursor.
+ */
+function pfeilTasten(
+  modal: SuggestModal<unknown>,
+  a: { zurueck?: () => void; weiter?: (evt: KeyboardEvent) => void; oeffnen?: () => void },
+): void {
+  const input = modal.inputEl;
+  const rand = () => amRand(input.value, input.selectionStart ?? 0, input.selectionEnd ?? 0);
+  const { zurueck, weiter, oeffnen } = a;
+  if (zurueck) {
+    modal.scope.register([], "ArrowLeft", () => (rand().anfang ? (zurueck(), false) : true));
+    modal.scope.register([], "Backspace", () => (input.value === "" ? (zurueck(), false) : true));
+  }
+  if (weiter) modal.scope.register([], "ArrowRight", (evt) => (rand().ende ? (weiter(evt), false) : true));
+  if (oeffnen) modal.scope.register(["Shift"], "ArrowRight", () => (rand().ende ? (oeffnen(), false) : true));
+}
+
 /** Schritt 1: Fach wählen – zuletzt benutzte oben. */
 export class FachModal extends SuggestModal<FachWahl> {
   private items: FachWahl[];
@@ -60,10 +92,11 @@ export class FachModal extends SuggestModal<FachWahl> {
     this.setPlaceholder(t("m.fach.platzhalter"));
     this.setInstructions([
       { command: "↑↓", purpose: t("m.waehlen") },
-      { command: "↵", purpose: t("m.weiterThema") },
+      { command: "↵ / →", purpose: t("m.weiterThema") },
       { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 60;
+    pfeilTasten(this as SuggestModal<unknown>, { weiter: (evt) => wieEnter(this as SuggestModal<unknown>, evt) });
   }
 
   getSuggestions(query: string): FachWahl[] {
@@ -96,7 +129,14 @@ export class ThemaModal extends SuggestModal<ThemaChoice> {
   private onPick: (choice: ThemaChoice) => void;
   private vorne: string | null;
 
-  constructor(app: App, fach: Fach, themen: ThemaInfo[], onPick: (choice: ThemaChoice) => void, vorne: string | null = null) {
+  constructor(
+    app: App,
+    fach: Fach,
+    themen: ThemaInfo[],
+    onPick: (choice: ThemaChoice) => void,
+    vorne: string | null = null,
+    onBack?: () => void,
+  ) {
     super(app);
     this.fach = fach;
     this.onPick = onPick;
@@ -108,10 +148,15 @@ export class ThemaModal extends SuggestModal<ThemaChoice> {
     this.setPlaceholder(t("m.thema.platzhalter", { fach: fach.name }));
     this.setInstructions([
       { command: "↑↓", purpose: t("m.waehlen") },
-      { command: "↵", purpose: t("m.weiterTitel") },
+      { command: "↵ / →", purpose: t("m.weiterTitel") },
+      ...(onBack ? [{ command: "←", purpose: t("m.zurueck") }] : []),
       { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 80;
+    pfeilTasten(this as SuggestModal<unknown>, {
+      zurueck: onBack && (() => (this.close(), onBack())),
+      weiter: (evt) => wieEnter(this as SuggestModal<unknown>, evt),
+    });
   }
 
   getSuggestions(query: string): ThemaChoice[] {
@@ -150,7 +195,7 @@ export class TitelModal extends SuggestModal<TitelChoice> {
   private onPick: (choice: TitelChoice) => void;
   private ziel: string;
 
-  constructor(app: App, krumen: string[], ziel: string, vorhanden: TFile[], onPick: (choice: TitelChoice) => void) {
+  constructor(app: App, krumen: string[], ziel: string, vorhanden: TFile[], onPick: (choice: TitelChoice) => void, onBack?: () => void) {
     super(app);
     this.ziel = ziel;
     this.vorhanden = [...vorhanden].sort((a, b) => b.stat.mtime - a.stat.mtime);
@@ -160,9 +205,17 @@ export class TitelModal extends SuggestModal<TitelChoice> {
     this.setPlaceholder(t("m.titel.platzhalter"));
     this.setInstructions([
       { command: "↵", purpose: t("m.anlegenOeffnen") },
+      ...(onBack ? [{ command: "←", purpose: t("m.zurueck") }] : []),
       { command: "esc", purpose: t("abbrechen") },
     ]);
     this.limit = 30;
+    // → nur im leeren Feld (vorhandene Note öffnen) – am Ende eines getippten Titels würde es sonst die Note anlegen
+    pfeilTasten(this as SuggestModal<unknown>, {
+      zurueck: onBack && (() => (this.close(), onBack())),
+      weiter: (evt) => {
+        if (!this.inputEl.value) wieEnter(this as SuggestModal<unknown>, evt);
+      },
+    });
   }
 
   getSuggestions(query: string): TitelChoice[] {
@@ -192,12 +245,9 @@ export interface NavQuelle {
   oeffne(path: string, neuerTab: boolean): void;
 }
 
-/** Interner Teil von SuggestModal: die aktuell markierte Zeile. */
-type MitChooser = { chooser: { values: unknown[] | null; selectedItem: number } };
-
 /**
- * Navigieren: Fach → Thema → Unterthema → Note. ↵ geht tiefer (Note: öffnen), Shift+↵ öffnet (Hub, Ordner-Note, Note),
- * Strg+↵ öffnet in neuem Tab, Rücktaste im leeren Feld geht zurück. Ein Dialog, die Ebene wechselt darin.
+ * Navigieren: Fach → Thema → Unterthema → Note. ↵/→ geht tiefer (Note: öffnen), Shift+↵/Shift+→ öffnet (Hub, Ordner-Note, Note),
+ * Strg+↵ öffnet in neuem Tab, ← bzw. Rücktaste geht zurück. Ein Dialog, die Ebene wechselt darin.
  */
 export class NavModal extends SuggestModal<NavItem> {
   private faecher: FachWahl[];
@@ -213,19 +263,18 @@ export class NavModal extends SuggestModal<NavItem> {
     this.mehrereBereiche = new Set(faecher.map((i) => i.bereich.id)).size > 1;
     this.modalEl.addClass("themen-modal");
     this.limit = 100;
-    this.scope.register(["Shift"], "Enter", () => (this.markiert() && this.waehle(this.markiert()!, false), false));
-    this.scope.register(["Mod"], "Enter", () => (this.markiert() && this.waehle(this.markiert()!, true), false));
-    this.scope.register([], "Backspace", () => {
-      if (this.inputEl.value !== "" || !this.stand) return true;
-      this.zurueck();
-      return false;
+    const oeffnen = (neuerTab: boolean) => {
+      const item = markiert<NavItem>(this);
+      if (item) this.waehle(item, neuerTab);
+    };
+    this.scope.register(["Shift"], "Enter", () => (oeffnen(false), false));
+    this.scope.register(["Mod"], "Enter", () => (oeffnen(true), false));
+    pfeilTasten(this as SuggestModal<unknown>, {
+      zurueck: () => this.stand && this.zurueck(),
+      weiter: (evt) => wieEnter(this as SuggestModal<unknown>, evt),
+      oeffnen: () => oeffnen(false),
     });
     this.zeigeEbene();
-  }
-
-  private markiert(): NavItem | null {
-    const c = (this as unknown as MitChooser).chooser;
-    return (c?.values?.[c.selectedItem] as NavItem | undefined) ?? null;
   }
 
   private zeigeEbene(): void {
@@ -233,10 +282,10 @@ export class NavModal extends SuggestModal<NavItem> {
     brotkrumen(this as SuggestModal<unknown>, s ? [s.wahl.fach.name, ...(s.rel ? s.rel.split("/") : [])] : []);
     this.setPlaceholder(s ? t("m.nav.platzhalterIn", { ort: s.rel ? s.rel.split("/").pop()! : s.wahl.fach.name }) : t("m.nav.platzhalter"));
     this.setInstructions([
-      { command: "↵", purpose: t("m.nav.tiefer") },
-      { command: "⇧ ↵", purpose: s ? t("m.nav.oeffnen") : t("m.nav.hubOeffnen") },
+      { command: "↵ / →", purpose: t("m.nav.tiefer") },
+      { command: "⇧ ↵ / ⇧ →", purpose: s ? t("m.nav.oeffnen") : t("m.nav.hubOeffnen") },
       { command: "ctrl ↵", purpose: t("m.nav.neuerTab") },
-      ...(s ? [{ command: "⌫", purpose: t("m.nav.zurueck") }] : []),
+      ...(s ? [{ command: "←", purpose: t("m.zurueck") }] : []),
       { command: "esc", purpose: t("abbrechen") },
     ]);
     this.inputEl.value = "";

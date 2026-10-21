@@ -82,7 +82,7 @@ const DE = {
   "m.nav.oeffnen": "öffnen",
   "m.nav.tiefer": "tiefer",
   "m.nav.neuerTab": "neuer Tab",
-  "m.nav.zurueck": "zurück",
+  "m.zurueck": "zurück",
   "m.nav.keinHub": "kein Hub",
   "m.nav.mitNote": "Ordner-Note",
 
@@ -311,7 +311,7 @@ const EN: Record<TextKey, string> = {
   "m.nav.oeffnen": "open",
   "m.nav.tiefer": "go deeper",
   "m.nav.neuerTab": "new tab",
-  "m.nav.zurueck": "back",
+  "m.zurueck": "back",
   "m.nav.keinHub": "no hub",
   "m.nav.mitNote": "folder note",
 

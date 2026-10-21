@@ -320,6 +320,7 @@ export default class ThemenNotesPlugin extends Plugin {
         this.waehleTitel(bereich, fach, pfad);
       },
       vorne,
+      () => this.waehleFach(),
     ).open();
   }
 
@@ -354,7 +355,7 @@ export default class ThemenNotesPlugin extends Plugin {
     new TitelModal(this.app, krumen, ordner.slice(bereich.root.length + 1), vorhanden, (choice) => {
       if (choice.kind === "open") void this.open(choice.file);
       else void this.erstelleNote(ordner, choice.titel).catch((e) => new Notice(t("fehler", { msg: (e as Error).message })));
-    }).open();
+    }, () => this.waehleThema(bereich, fach, pfad)).open();
   }
 
   /** Direkt zum Titel: neue Note im Ordner der aktuellen Note. */

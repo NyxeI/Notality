@@ -49,6 +49,7 @@ The sync runs about a second after Obsidian has re-read a changed note.
   - Title step: the target path is shown; matching notes in that folder can be opened instead.
 - **… im Fach der aktuellen Note** (`Ctrl+Alt+Shift+N` suggested): starts at the topic step, the current topic first.
 - **… im Thema der aktuellen Note**: straight to the title.
+- **Arrow keys:** `→` works like `Enter` in the subject and topic steps; `←` (or `Backspace` in the empty field) goes back one step, from the title to the topic (the chosen topic on top) and from the topic to the subject. In the title step `→` only acts on an empty field, so it never creates a note by accident. With text in the field, the arrows move the cursor until it reaches the start or end.
 - **Template** (*Vorlage*): optional note path. Placeholders `{{titel}}`/`{{title}}`, `{{fach}}`, `{{thema}}`, `{{datum}}`/`{{date}}` (date format of the core Templates plugin). Frontmatter in the template is kept; its tags are merged.
 - **Banner**: with *Banner für neue Notes* on, the note gets the banner of the closest folder note (`Topic/Topic.md`) or of the subject hub.
 
@@ -61,10 +62,12 @@ The sync runs about a second after Obsidian has re-read a changed note.
 
   | Key | Subject | Topic | Note |
   |---|---|---|---|
-  | `Enter` | go deeper | go deeper | open |
-  | `Shift+Enter` | open the hub (no hub: go deeper) | open the folder note (none: go deeper) | open |
+  | `Enter` / `→` | go deeper | go deeper | open |
+  | `Shift+Enter` / `Shift+→` | open the hub (no hub: go deeper) | open the folder note (none: go deeper) | open |
   | `Ctrl+Enter` | like `Shift+Enter`, in a new tab | like `Shift+Enter`, in a new tab | open in a new tab |
-  | `Backspace` (empty field) | – | back one level | back one level |
+  | `←` / `Backspace` (empty field) | – | back one level | back one level |
+
+  With text in the search field, `←` and `→` move the cursor as usual; they navigate only when the cursor is at the start (`←`) or the end (`→`) of the text.
 
 - **Search:** typing filters the current level first; matches further down (subtopics and notes) follow, with their folder as a subtitle.
 - Ignored folders are skipped; grade folders (`11`, `12-1`) appear like topics. Notes open in the current tab in their usual mode.

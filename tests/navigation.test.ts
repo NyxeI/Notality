@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { navInhalt, navSuche } from "../src/navigation.ts";
+import { amRand, navInhalt, navSuche } from "../src/navigation.ts";
 import { themenVon } from "../src/pfad.ts";
 import { SCHULE } from "./support/schule.ts";
 
@@ -48,4 +48,12 @@ test("Suche: Ebene vor tieferen Treffern, Wortanfang zuerst; leer = nur die Eben
   assert.deepEqual(namen(navSuche(inhalt(""), "brenn")), ["Brennpunkt", "Brennweite"]);
   assert.deepEqual(namen(navSuche(inhalt(""), "a")), ["A Auge", "Astroabend", "Schall"]);
   assert.deepEqual(namen(navSuche(inhalt(""), "l")), ["Linse", "Teil 1", "Schall"]);
+});
+
+test("amRand: Pfeiltasten wirken nur am Rand des Suchtexts", () => {
+  assert.deepEqual(amRand("", 0, 0), { anfang: true, ende: true });
+  assert.deepEqual(amRand("Phy", 0, 0), { anfang: true, ende: false });
+  assert.deepEqual(amRand("Phy", 1, 1), { anfang: false, ende: false });
+  assert.deepEqual(amRand("Phy", 3, 3), { anfang: false, ende: true });
+  assert.deepEqual(amRand("Phy", 0, 3), { anfang: false, ende: false });
 });

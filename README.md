@@ -18,7 +18,7 @@ It is the sibling of [Schul-Tagesnotes](https://github.com/NyxeI/obsidian-schul-
 ## Features
 
 - **New note in three steps.** Pick a subject (recently used first, with note count), a topic folder (recently used first, nested topics shown as paths) and type a title. A title that already exists in that folder opens the existing note. Typing a new topic creates its folder; `Dramen/Faust` creates a subtopic.
-- **Navigate the vault.** The same dialog takes you to a subject hub, a topic or a note: `Enter` goes one level deeper (or opens a note); `Shift+Enter` opens the hub, the topic's folder note (`A Auge/A Auge.md`) or the note; `Backspace` in the empty field goes back. Typing also finds subtopics and notes further down.
+- **Navigate the vault.** The same dialog takes you to a subject hub, a topic or a note: `Enter` or `→` goes one level deeper (or opens a note); `Shift+Enter` or `Shift+→` opens the hub, the topic's folder note (`A Auge/A Auge.md`) or the note; `←` goes back. Typing also finds subtopics and notes further down.
 - **Properties from the folder.** Every note gets:
 
   | Property | Value |

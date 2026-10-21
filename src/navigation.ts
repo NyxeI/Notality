@@ -101,3 +101,9 @@ export function navSuche(inhalt: NavInhalt, query: string): NavEintrag[] {
   };
   return [...filtern(inhalt.direkt), ...filtern(inhalt.tiefer)];
 }
+
+/** Cursor im Suchfeld: ganz am Anfang bzw. am Ende, ohne Markierung (leeres Feld = beides). */
+export function amRand(wert: string, start: number, ende: number): { anfang: boolean; ende: boolean } {
+  const leer = start === ende;
+  return { anfang: leer && start === 0, ende: leer && start === wert.length };
+}
