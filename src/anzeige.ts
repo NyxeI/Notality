@@ -77,8 +77,12 @@ export class Anzeige {
     const art = this.plugin.art(view.file);
     view.containerEl.toggleClass("themen-hub", art === "hub");
     view.containerEl.toggleClass("themen-note", art === "note");
-    view.contentEl.querySelector(":scope > .themen-notebar")?.remove();
-    if (art && view.file && this.plugin.settings.anzeige.menueleiste) view.contentEl.prepend(this.notebar(view.file, art));
+    const alt = view.contentEl.querySelector<HTMLElement>(":scope > .themen-notebar");
+    const neu = art && view.file && this.plugin.settings.anzeige.menueleiste ? this.notebar(view.file, art) : null;
+    // Unveränderte Leiste stehen lassen: Austauschen lässt Obsidian den ganzen Editor neu stylen und layouten (~30 ms)
+    if (alt && neu && alt.outerHTML === neu.outerHTML) return;
+    alt?.remove();
+    if (neu) view.contentEl.prepend(neu);
   }
 
   clear(): void {
@@ -101,14 +105,18 @@ export class Anzeige {
     const links = bar.createDiv({ cls: "themen-notebar-links" });
     const rechts = bar.createDiv({ cls: "themen-notebar-rechts" });
     const e = p.einordnung(file.path);
+    // Was die Klick-Handler festhalten, damit der Vergleich in decorate() auch unsichtbare Änderungen erkennt
+    const stand: unknown[] = [file.path, e];
     if (e && art === "hub") {
       if (zeige("neu")) knopf(links, "plus", t("l.neuIn", { fach: e.fach.name }), () => p.waehleThema(e.bereich, e.fach), true);
     }
     if (e && art === "note") {
       const hub = p.hubDatei(e.bereich, e.fach);
+      stand.push(hub?.path ?? null);
       if (hub && zeige("hub")) knopf(links, "house", e.fach.name, () => void p.open(hub), true);
       if (zeige("navigation")) {
         const nb = nachbarn(p.notesImOrdner(file), file.path);
+        stand.push(nb.prev, nb.next);
         const geh = (path: string | null) => {
           const f = path ? p.app.vault.getAbstractFileByPath(path) : null;
           if (f instanceof TFile) void p.open(f);
@@ -127,6 +135,7 @@ export class Anzeige {
       }
     }
     if (zeige("panel")) knopf(rechts, "sliders-horizontal", t("cmd.panel"), () => void p.openPanel());
+    bar.dataset.stand = JSON.stringify(stand);
     return bar;
   }
 }
