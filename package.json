@@ -1,6 +1,6 @@
 {
   "name": "notality",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Topic notes per subject: a quick dialog files new notes into subject/topic folders, keeps properties and tags in sync, and adds Bases overviews to subject hubs.",
   "main": "main.js",
   "type": "module",
